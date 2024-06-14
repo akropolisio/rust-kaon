@@ -23,8 +23,8 @@ impl InputString {
     ///
     /// ```
     /// use core::fmt;
-    /// use bitcoin_internals::error::InputString;
-    /// use bitcoin_internals::write_err;
+    /// use kaon_internals::error::InputString;
+    /// use kaon_internals::write_err;
     ///
     /// /// An example parsing error including the parse error from core.
     /// #[derive(Debug, Clone, PartialEq, Eq)]
@@ -55,7 +55,7 @@ impl InputString {
     ///
     /// ```
     /// use core::fmt;
-    /// use bitcoin_internals::error::InputString;
+    /// use kaon_internals::error::InputString;
     ///
     /// /// An example parsing error.
     /// #[derive(Debug, Clone, PartialEq, Eq)]

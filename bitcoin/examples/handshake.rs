@@ -1,16 +1,16 @@
-extern crate bitcoin;
+extern crate kaon;
 
 use std::io::{BufReader, Write};
 use std::net::{IpAddr, Ipv4Addr, Shutdown, SocketAddr, TcpStream};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{env, process};
 
-use bitcoin::consensus::{encode, Decodable};
-use bitcoin::p2p::{self, address, message, message_network};
-use bitcoin::secp256k1::rand::Rng;
+use kaon::consensus::{encode, Decodable};
+use kaon::p2p::{self, address, message, message_network};
+use kaon::secp256k1::rand::Rng;
 
 fn main() {
-    // This example establishes a connection to a Bitcoin node, sends the initial
+    // This example establishes a connection to a Kaon node, sends the initial
     // "version" message, waits for the reply, and finally closes the connection.
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
@@ -28,7 +28,7 @@ fn main() {
     let version_message = build_version_message(address);
 
     let first_message =
-        message::RawNetworkMessage::new(bitcoin::Network::Bitcoin.magic(), version_message);
+        message::RawNetworkMessage::new(kaon::Network::Mainnet.magic(), version_message);
 
     if let Ok(mut stream) = TcpStream::connect(address) {
         // Send the message
@@ -46,7 +46,7 @@ fn main() {
                     println!("Received version message: {:?}", reply.payload());
 
                     let second_message = message::RawNetworkMessage::new(
-                        bitcoin::Network::Bitcoin.magic(),
+                        kaon::Network::Mainnet.magic(),
                         message::NetworkMessage::Verack,
                     );
 

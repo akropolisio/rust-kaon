@@ -14,8 +14,8 @@ use crate::consensus::{encode, Encodable};
 #[cfg(feature = "secp-recovery")]
 pub use self::message_signing::{MessageSignature, MessageSignatureError};
 
-/// The prefix for signed messages using Bitcoin's message signing protocol.
-pub const BITCOIN_SIGNED_MSG_PREFIX: &[u8] = b"\x18Bitcoin Signed Message:\n";
+/// The prefix for signed messages using Kaon's message signing protocol.
+pub const KAON_SIGNED_MSG_PREFIX: &[u8] = b"\x18Kaon Signed Message:\n";
 
 #[cfg(feature = "secp-recovery")]
 mod message_signing {
@@ -28,7 +28,7 @@ mod message_signing {
     use crate::address::{Address, AddressType};
     use crate::crypto::key::PublicKey;
 
-    /// An error used for dealing with Bitcoin Signed Messages.
+    /// An error used for dealing with Kaon Signed Messages.
     #[derive(Debug, Clone, PartialEq, Eq)]
     #[non_exhaustive]
     pub enum MessageSignatureError {
@@ -76,7 +76,7 @@ mod message_signing {
         }
     }
 
-    /// A signature on a Bitcoin Signed Message.
+    /// A signature on a Kaon Signed Message.
     ///
     /// In order to use the `to_base64` and `from_base64` methods, as well as the
     /// `fmt::Display` and `str::FromStr` implementations, the `base64` feature
@@ -196,11 +196,11 @@ mod message_signing {
     }
 }
 
-/// Hash message for signature using Bitcoin's message signing format.
+/// Hash message for signature using Kaon's message signing format.
 pub fn signed_msg_hash(msg: &str) -> sha256d::Hash {
     let mut engine = sha256d::Hash::engine();
-    engine.input(BITCOIN_SIGNED_MSG_PREFIX);
-    let msg_len = encode::VarInt::from(msg.len());
+    engine.input(KAON_SIGNED_MSG_PREFIX);
+    let msg_len = encode::CompactSize::from(msg.len());
     msg_len.consensus_encode(&mut engine).expect("engines don't error");
     engine.input(msg.as_bytes());
     sha256d::Hash::from_engine(engine)
@@ -229,7 +229,7 @@ mod tests {
         use crate::{Address, AddressType, Network, NetworkKind};
 
         let secp = secp256k1::Secp256k1::new();
-        let message = "rust-bitcoin MessageSignature test";
+        let message = "rust-kaon MessageSignature test";
         let msg_hash = super::signed_msg_hash(message);
         let msg = secp256k1::Message::from_digest(msg_hash.to_byte_array());
         let privkey = secp256k1::SecretKey::new(&mut secp256k1::rand::thread_rng());
@@ -246,7 +246,7 @@ mod tests {
 
         let p2pkh = Address::p2pkh(pubkey, NetworkKind::Main);
         assert_eq!(signature2.is_signed_by_address(&secp, &p2pkh, msg_hash), Ok(true));
-        let p2wpkh = Address::p2wpkh(&pubkey, Network::Bitcoin);
+        let p2wpkh = Address::p2wpkh(&pubkey, Network::Mainnet);
         assert_eq!(
             signature2.is_signed_by_address(&secp, &p2wpkh, msg_hash),
             Err(MessageSignatureError::UnsupportedAddressType(AddressType::P2wpkh))
@@ -256,7 +256,7 @@ mod tests {
             signature2.is_signed_by_address(&secp, &p2shwpkh, msg_hash),
             Err(MessageSignatureError::UnsupportedAddressType(AddressType::P2sh))
         );
-        let p2pkh = Address::p2pkh(pubkey, Network::Bitcoin);
+        let p2pkh = Address::p2pkh(pubkey, Network::Mainnet);
         assert_eq!(signature2.is_signed_by_address(&secp, &p2pkh, msg_hash), Ok(true));
 
         assert_eq!(pubkey.0, secp256k1::PublicKey::from_secret_key(&secp, &privkey));
@@ -275,7 +275,7 @@ mod tests {
         let message = "a different message from what was signed";
         let msg_hash = super::signed_msg_hash(message);
 
-        // Signature of msg = "rust-bitcoin MessageSignature test"
+        // Signature of msg = "rust-kaon MessageSignature test"
         // Signed with pk "UuOGDsfLPr4HIMKQX0ipjJeRaj1geCq3yPUF2COP5ME="
         let signature_base64 = "IAM2qX24tYx/bdBTIgVLhD8QEAjrPlJpmjB4nZHdRYGIBa4DmVulAcwjPnWe6Q5iEwXH6F0pUCJP/ZeHPWS1h1o=";
         let pubkey_base64 = "A1FTfMEntPpAty3qkEo0q2Dc1FEycI10a3jmwEFy+Qr6";

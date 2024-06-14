@@ -25,12 +25,12 @@
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
-use bitcoin::bip32::{ChildNumber, DerivationPath, Fingerprint, IntoDerivationPath, Xpriv, Xpub};
-use bitcoin::hashes::Hash;
-use bitcoin::locktime::absolute;
-use bitcoin::psbt::Input;
-use bitcoin::secp256k1::{Secp256k1, Signing};
-use bitcoin::{
+use kaon::bip32::{ChildNumber, DerivationPath, Fingerprint, IntoDerivationPath, Xpriv, Xpub};
+use kaon::hashes::Hash;
+use kaon::locktime::absolute;
+use kaon::psbt::Input;
+use kaon::secp256k1::{Secp256k1, Signing};
+use kaon::{
     consensus, transaction, Address, Amount, EcdsaSighashType, Network, OutPoint, Psbt, ScriptBuf,
     Sequence, Transaction, TxIn, TxOut, Txid, WPubkeyHash, Witness,
 };
@@ -87,7 +87,7 @@ fn get_internal_address_xpriv<C: Signing>(
 fn receivers_address() -> Address {
     Address::from_str("bc1q7cyrfmck2ffu2ud3rn5l5a8yv6f0chkp0zpemf")
         .expect("a valid address")
-        .require_network(Network::Bitcoin)
+        .require_network(Network::Mainnet)
         .expect("valid address for mainnet")
 }
 
@@ -95,7 +95,7 @@ fn receivers_address() -> Address {
 fn dummy_unspent_transaction_outputs() -> Vec<(OutPoint, TxOut)> {
     let script_pubkey_1 = Address::from_str("bc1qrwuu3ydv0jfza4a0ehtfd03m9l4vw3fy0hfm50")
         .expect("a valid address")
-        .require_network(Network::Bitcoin)
+        .require_network(Network::Mainnet)
         .expect("valid address for mainnet")
         .script_pubkey();
 
@@ -108,7 +108,7 @@ fn dummy_unspent_transaction_outputs() -> Vec<(OutPoint, TxOut)> {
 
     let script_pubkey_2 = Address::from_str("bc1qy7swwpejlw7a2rp774pa8rymh8tw3xvd2x2xkd")
         .expect("a valid address")
-        .require_network(Network::Bitcoin)
+        .require_network(Network::Mainnet)
         .expect("valid address for mainnet")
         .script_pubkey();
 
@@ -240,6 +240,6 @@ fn main() {
     let serialized_signed_tx = consensus::encode::serialize_hex(&signed_tx);
     println!("Transaction Details: {:#?}", signed_tx);
     // check with:
-    // bitcoin-cli decoderawtransaction <RAW_TX> true
+    // kaon-cli decoderawtransaction <RAW_TX> true
     println!("Raw Transaction: {}", serialized_signed_tx);
 }

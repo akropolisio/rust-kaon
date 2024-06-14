@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin p2p network types.
+//! Bitcoin/Kaon p2p network types.
 //!
 //! This module defines support for (de)serialization and network transport
-//! of Bitcoin data and Bitcoin p2p network messages.
+//! of Kaon data and Kaon p2p network messages.
 
 #[cfg(feature = "std")]
 pub mod address;
@@ -54,7 +54,9 @@ pub use self::address::Address;
 /// 70001 - Support bloom filter messages `filterload`, `filterclear` `filteradd`, `merkleblock` and FILTERED_BLOCK inventory type
 /// 60002 - Support `mempool` message
 /// 60001 - Support `pong` message and nonce in `ping` message
-pub const PROTOCOL_VERSION: u32 = 70001;
+///
+/// Kaon operates on 70918 version.
+pub const PROTOCOL_VERSION: u32 = 70918;
 
 /// Flags to indicate which network services a node supports.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -65,18 +67,18 @@ impl ServiceFlags {
     pub const NONE: ServiceFlags = ServiceFlags(0);
 
     /// NETWORK means that the node is capable of serving the complete block chain. It is currently
-    /// set by all Bitcoin Core non pruned nodes, and is unset by SPV clients or other light
+    /// set by all Kaon Core non pruned nodes, and is unset by SPV clients or other light
     /// clients.
     pub const NETWORK: ServiceFlags = ServiceFlags(1 << 0);
 
-    /// GETUTXO means the node is capable of responding to the getutxo protocol request.  Bitcoin
-    /// Core does not support this but a patch set called Bitcoin XT does.
+    // TODO: actualize
+    /// GETUTXO means the node is capable of responding to the getutxo protocol request (REST rest_getutxos).
     /// See BIP 64 for details on how this is implemented.
+    /// Inputs are sent over URI scheme (/rest/getutxos/checkmempool/txid1-n/txid2-n/...)
     pub const GETUTXO: ServiceFlags = ServiceFlags(1 << 1);
 
-    /// BLOOM means the node is capable and willing to handle bloom-filtered connections.  Bitcoin
-    /// Core nodes used to support this by default, without advertising this bit, but no longer do
-    /// as of protocol version 70011 (= NO_BLOOM_VERSION)
+    /// BLOOM means the node is capable and willing to handle bloom-filtered connections.  Kaon
+    /// Core nodes used to support this by default. The minimum protocol version in Kaon is 70918
     pub const BLOOM: ServiceFlags = ServiceFlags(1 << 2);
 
     /// WITNESS indicates that a node can be asked for blocks and transactions including witness
@@ -213,14 +215,14 @@ impl Decodable for ServiceFlags {
 pub struct Magic([u8; 4]);
 
 impl Magic {
-    /// Bitcoin mainnet network magic bytes.
-    pub const BITCOIN: Self = Self([0xF9, 0xBE, 0xB4, 0xD9]);
-    /// Bitcoin testnet network magic bytes.
-    pub const TESTNET: Self = Self([0x0B, 0x11, 0x09, 0x07]);
-    /// Bitcoin signet network magic bytes.
-    pub const SIGNET: Self = Self([0x0A, 0x03, 0xCF, 0x40]);
-    /// Bitcoin regtest network magic bytes.
-    pub const REGTEST: Self = Self([0xFA, 0xBF, 0xB5, 0xDA]);
+    /// Kaon mainnet network magic bytes.
+    pub const MAINNET: Self = Self([0x55, 0x6e, 0x69, 0x4d]);
+    /// Kaon testnet network magic bytes.
+    pub const TESTNET: Self = Self([0x55, 0x6e, 0x69, 0x54]);
+    /// Kaon signet network magic bytes.
+    pub const SIGNET: Self = Self([0x55, 0x6e, 0x69, 0x71]);
+    /// Kaon regtest network magic bytes.
+    pub const REGTEST: Self = Self([0x55, 0x6e, 0x69, 0x70]);
 
     /// Create network magic from bytes.
     pub const fn from_bytes(bytes: [u8; 4]) -> Magic { Magic(bytes) }
@@ -271,7 +273,7 @@ macro_rules! generate_network_magic_conversion {
 }
 
 generate_network_magic_conversion! {
-    Network::Bitcoin => Magic::BITCOIN,
+    Network::Mainnet => Magic::MAINNET,
     Network::Testnet => Magic::TESTNET,
     Network::Signet => Magic::SIGNET,
     Network::Regtest => Magic::REGTEST,
@@ -427,10 +429,10 @@ mod tests {
     #[test]
     fn magic_from_str() {
         let known_network_magic_strs = [
-            ("f9beb4d9", Network::Bitcoin),
-            ("0b110907", Network::Testnet),
-            ("fabfb5da", Network::Regtest),
-            ("0a03cf40", Network::Signet),
+            ("556e694d", Network::Mainnet),
+            ("556e6954", Network::Testnet),
+            ("556e6970", Network::Regtest),
+            ("556e6971", Network::Signet),
         ];
 
         for (magic_str, network) in &known_network_magic_strs {

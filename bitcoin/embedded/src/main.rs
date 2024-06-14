@@ -4,7 +4,7 @@
 #![no_main]
 
 extern crate alloc;
-extern crate bitcoin;
+extern crate kaon;
 
 use alloc::string::ToString;
 use alloc::vec;
@@ -12,9 +12,9 @@ use core::panic::PanicInfo;
 
 use alloc_cortex_m::CortexMHeap;
 // use panic_halt as _;
-use bitcoin::{Address, Network, PrivateKey};
-use bitcoin::secp256k1::ffi::types::AlignedType;
-use bitcoin::secp256k1::Secp256k1;
+use kaon::{Address, Network, PrivateKey};
+use kaon::secp256k1::ffi::types::AlignedType;
+use kaon::secp256k1::Secp256k1;
 
 use cortex_m_rt::entry;
 use cortex_m_semihosting::{debug, hprintln};
@@ -44,7 +44,7 @@ fn main() -> ! {
 
     // Derive address
     let pubkey = pk.public_key(&secp).try_into().unwrap();
-    let address = Address::p2wpkh(&pubkey, Network::Bitcoin);
+    let address = Address::p2wpkh(&pubkey, Network::Mainnet);
     hprintln!("Address: {}", address).unwrap();
 
     assert_eq!(address.to_string(), "bc1qpx9t9pzzl4qsydmhyt6ctrxxjd4ep549np9993".to_string());

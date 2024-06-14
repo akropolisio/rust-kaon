@@ -1,29 +1,29 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin addresses.
+//! Bitcoin/Kaon addresses.
 //!
-//! Support for ordinary base58 Bitcoin addresses and private keys.
+//! Support for ordinary base58 Bitcoin/Kaon addresses and private keys.
 //!
 //! # Example: creating a new address from a randomly-generated key pair
 //!
 //! ```rust
 //! # #[cfg(feature = "rand-std")] {
-//! use bitcoin::{Address, PublicKey, Network};
-//! use bitcoin::secp256k1::{rand, Secp256k1};
+//! use kaon::{Address, PublicKey, Network};
+//! use kaon::secp256k1::{rand, Secp256k1};
 //!
 //! // Generate random key pair.
 //! let s = Secp256k1::new();
 //! let public_key = PublicKey::new(s.generate_keypair(&mut rand::thread_rng()).1);
 //!
 //! // Generate pay-to-pubkey-hash address.
-//! let address = Address::p2pkh(&public_key, Network::Bitcoin);
+//! let address = Address::p2pkh(&public_key, Network::Mainnet);
 //! # }
 //! ```
 //!
 //! # Note: creating a new address requires the rand-std feature flag
 //!
 //! ```toml
-//! bitcoin = { version = "...", features = ["rand-std"] }
+//! kaon = { version = "...", features = ["rand-std"] }
 //! ```
 
 pub mod error;
@@ -188,7 +188,7 @@ impl fmt::Display for AddressInner {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub enum KnownHrp {
-    /// The main Bitcoin network.
+    /// The main Kaon network.
     Mainnet,
     /// The test networks, testnet and signet.
     Testnets,
@@ -202,7 +202,7 @@ impl KnownHrp {
         use Network::*;
 
         match network {
-            Bitcoin => Self::Mainnet,
+            Mainnet => Self::Mainnet,
             Testnet | Signet => Self::Testnets,
             Regtest => Self::Regtest,
         }
@@ -259,7 +259,7 @@ pub enum AddressData {
     },
 }
 
-/// A Bitcoin address.
+/// A Bitcoin/Kaon address.
 ///
 /// ### Parsing addresses
 ///
@@ -279,20 +279,20 @@ pub enum AddressData {
 ///
 /// ```rust
 /// use std::str::FromStr;
-/// use bitcoin::{Address, Network};
-/// use bitcoin::address::{NetworkUnchecked, NetworkChecked};
+/// use kaon::{Address, Network};
+/// use kaon::address::{NetworkUnchecked, NetworkChecked};
 ///
 /// // variant 1
 /// let address: Address<NetworkUnchecked> = "32iVBEu4dxkUQk9dJbZUiBiQdmypcEyJRf".parse().unwrap();
-/// let address: Address<NetworkChecked> = address.require_network(Network::Bitcoin).unwrap();
+/// let address: Address<NetworkChecked> = address.require_network(Network::Mainnet).unwrap();
 ///
 /// // variant 2
 /// let address: Address = Address::from_str("32iVBEu4dxkUQk9dJbZUiBiQdmypcEyJRf").unwrap()
-///                .require_network(Network::Bitcoin).unwrap();
+///                .require_network(Network::Mainnet).unwrap();
 ///
 /// // variant 3
 /// let address: Address<NetworkChecked> = "32iVBEu4dxkUQk9dJbZUiBiQdmypcEyJRf".parse::<Address<_>>()
-///                .unwrap().require_network(Network::Bitcoin).unwrap();
+///                .unwrap().require_network(Network::Mainnet).unwrap();
 /// ```
 ///
 /// ### Formatting addresses
@@ -304,7 +304,7 @@ pub enum AddressData {
 ///
 /// ```
 /// # use std::str::FromStr;
-/// # use bitcoin::address::{Address, NetworkChecked};
+/// # use kaon::address::{Address, NetworkChecked};
 /// let address: Address<NetworkChecked> = Address::from_str("132F25rTsvBdp9JzLLBHP5mvGY66i1xdiM")
 ///                .unwrap().assume_checked();
 /// assert_eq!(address.to_string(), "132F25rTsvBdp9JzLLBHP5mvGY66i1xdiM");
@@ -312,7 +312,7 @@ pub enum AddressData {
 ///
 /// ```ignore
 /// # use std::str::FromStr;
-/// # use bitcoin::address::{Address, NetworkChecked};
+/// # use kaon::address::{Address, NetworkChecked};
 /// let address: Address<NetworkUnchecked> = Address::from_str("132F25rTsvBdp9JzLLBHP5mvGY66i1xdiM")
 ///                .unwrap();
 /// let s = address.to_string(); // does not compile
@@ -324,7 +324,7 @@ pub enum AddressData {
 ///
 /// ```
 /// # use std::str::FromStr;
-/// # use bitcoin::address::{Address, NetworkUnchecked};
+/// # use kaon::address::{Address, NetworkUnchecked};
 /// let address: Address<NetworkUnchecked> = Address::from_str("132F25rTsvBdp9JzLLBHP5mvGY66i1xdiM")
 ///                .unwrap();
 /// assert_eq!(format!("{:?}", address), "Address<NetworkUnchecked>(132F25rTsvBdp9JzLLBHP5mvGY66i1xdiM)");
@@ -332,7 +332,7 @@ pub enum AddressData {
 ///
 /// ```
 /// # use std::str::FromStr;
-/// # use bitcoin::address::{Address, NetworkChecked};
+/// # use kaon::address::{Address, NetworkChecked};
 /// let address: Address<NetworkChecked> = Address::from_str("132F25rTsvBdp9JzLLBHP5mvGY66i1xdiM")
 ///                .unwrap().assume_checked();
 /// assert_eq!(format!("{:?}", address), "132F25rTsvBdp9JzLLBHP5mvGY66i1xdiM");
@@ -363,7 +363,7 @@ impl<N: NetworkValidation> fmt::Display for DisplayUnchecked<'_, N> {
 }
 
 #[cfg(feature = "serde")]
-crate::serde_utils::serde_string_deserialize_impl!(Address<NetworkUnchecked>, "a Bitcoin address");
+crate::serde_utils::serde_string_deserialize_impl!(Address<NetworkUnchecked>, "a Kaon address");
 
 #[cfg(feature = "serde")]
 impl<N: NetworkValidation> serde::Serialize for Address<N> {
@@ -507,7 +507,7 @@ impl Address {
             AddressInner::P2pkh { hash, network: _ } => P2pkh { pubkey_hash: hash },
             AddressInner::P2sh { hash, network: _ } => P2sh { script_hash: hash },
             AddressInner::Segwit { program, hrp: _ } => Segwit { witness_program: program },
-        }
+        } // TODO: add other types
     }
 
     /// Gets the pubkey hash for this address if this is a P2PKH address.
@@ -540,7 +540,7 @@ impl Address {
         }
     }
 
-    /// Checks whether or not the address is following Bitcoin standardness rules when
+    /// Checks whether or not the address is following Bitcoin/Kaon standardness rules when
     /// *spending* from this address. *NOT* to be called by senders.
     ///
     /// <details>
@@ -594,7 +594,7 @@ impl Address {
         }
     }
 
-    /// Creates a URI string *bitcoin:address* optimized to be encoded in QR codes.
+    /// Creates a URI string *kaon:address* optimized to be encoded in QR codes.
     ///
     /// If the address is bech32, the address becomes uppercase.
     /// If the address is base58, the address is left mixed case.
@@ -602,7 +602,7 @@ impl Address {
     /// Quoting BIP 173 "inside QR codes uppercase SHOULD be used, as those permit the use of
     /// alphanumeric mode, which is 45% more compact than the normal byte mode."
     ///
-    /// Note however that despite BIP21 explicitly stating that the `bitcoin:` prefix should be
+    /// Note however that despite BIP21 explicitly stating that the `kaon:` prefix should be
     /// parsed as case-insensitive many wallets got this wrong and don't parse correctly.
     /// [See compatibility table.](https://github.com/btcpayserver/btcpayserver/issues/2110)
     ///
@@ -610,7 +610,7 @@ impl Address {
     /// ```
     /// # use core::fmt::Write;
     /// # const ADDRESS: &str = "BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4";
-    /// # let address = ADDRESS.parse::<bitcoin::Address<_>>().unwrap().assume_checked();
+    /// # let address = ADDRESS.parse::<kaon::Address<_>>().unwrap().assume_checked();
     /// # let mut writer = String::new();
     /// # // magic trick to make error handling look better
     /// # (|| -> Result<(), core::fmt::Error> {
@@ -621,7 +621,7 @@ impl Address {
     /// # })().unwrap();
     /// # assert_eq!(writer, ADDRESS);
     /// ```
-    pub fn to_qr_uri(&self) -> String { format!("bitcoin:{:#}", self) }
+    pub fn to_qr_uri(&self) -> String { format!("kaon:{:#}", self) }
 
     /// Returns true if the given pubkey is directly related to the address payload.
     ///
@@ -695,18 +695,18 @@ impl Address<NetworkUnchecked> {
     /// network a simple comparison is not enough anymore. Instead this function can be used.
     ///
     /// ```rust
-    /// use bitcoin::{Address, Network};
-    /// use bitcoin::address::NetworkUnchecked;
+    /// use kaon::{Address, Network};
+    /// use kaon::address::NetworkUnchecked;
     ///
     /// let address: Address<NetworkUnchecked> = "2N83imGV3gPwBzKJQvWJ7cRUY2SpUyU6A5e".parse().unwrap();
     /// assert!(address.is_valid_for_network(Network::Testnet));
     /// assert!(address.is_valid_for_network(Network::Regtest));
     /// assert!(address.is_valid_for_network(Network::Signet));
     ///
-    /// assert_eq!(address.is_valid_for_network(Network::Bitcoin), false);
+    /// assert_eq!(address.is_valid_for_network(Network::Mainnet), false);
     ///
     /// let address: Address<NetworkUnchecked> = "32iVBEu4dxkUQk9dJbZUiBiQdmypcEyJRf".parse().unwrap();
-    /// assert!(address.is_valid_for_network(Network::Bitcoin));
+    /// assert!(address.is_valid_for_network(Network::Mainnet));
     /// assert_eq!(address.is_valid_for_network(Network::Testnet), false);
     /// ```
     pub fn is_valid_for_network(&self, n: Network) -> bool {
@@ -732,8 +732,8 @@ impl Address<NetworkUnchecked> {
     ///  # Examples
     ///
     /// ```
-    /// use bitcoin::address::{NetworkChecked, NetworkUnchecked, ParseError};
-    /// use bitcoin::{Address, Network};
+    /// use kaon::address::{NetworkChecked, NetworkUnchecked, ParseError};
+    /// use kaon::{Address, Network};
     ///
     /// const ADDR: &str = "bc1zw508d6qejxtdg4y5r3zarvaryvaxxpcs";
     ///
@@ -755,7 +755,7 @@ impl Address<NetworkUnchecked> {
     ///     Ok(address)
     /// }
     ///
-    /// let network = Network::Bitcoin;  // Don't hard code network in applications.
+    /// let network = Network::Mainnet;  // Don't hard code network in applications.
     /// let _ = parse_and_validate_address(network).unwrap();
     /// let _ = parse_and_validate_address_combinator(network).unwrap();
     /// let _ = parse_and_validate_address_show_types(network).unwrap();
@@ -876,7 +876,7 @@ mod tests {
 
     use super::*;
     use crate::consensus::params;
-    use crate::network::Network::{Bitcoin, Testnet};
+    use crate::network::Network::{Mainnet, Testnet};
 
     fn roundtrips(addr: &Address, network: Network) {
         assert_eq!(
@@ -913,7 +913,7 @@ mod tests {
         );
         assert_eq!(&addr.to_string(), "132F25rTsvBdp9JzLLBHP5mvGY66i1xdiM");
         assert_eq!(addr.address_type(), Some(AddressType::P2pkh));
-        roundtrips(&addr, Bitcoin);
+        roundtrips(&addr, Mainnet);
     }
 
     #[test]
@@ -942,7 +942,7 @@ mod tests {
         );
         assert_eq!(&addr.to_string(), "33iFwdLuRpW1uK1RTRqsoi8rR4NpDzk66k");
         assert_eq!(addr.address_type(), Some(AddressType::P2sh));
-        roundtrips(&addr, Bitcoin);
+        roundtrips(&addr, Mainnet);
     }
 
     #[test]
@@ -962,19 +962,19 @@ mod tests {
 
     #[test]
     fn test_p2wpkh() {
-        // stolen from Bitcoin transaction: b3c8c2b6cfc335abbcb2c7823a8453f55d64b2b5125a9a61e8737230cdb8ce20
+        // stolen from Bitcoin/Kaon transaction: b3c8c2b6cfc335abbcb2c7823a8453f55d64b2b5125a9a61e8737230cdb8ce20
         let key = "033bc8c83c52df5712229a2f72206d90192366c36428cb0c12b6af98324d97bfbc"
             .parse::<CompressedPublicKey>()
             .unwrap();
         let addr = Address::p2wpkh(&key, KnownHrp::Mainnet);
         assert_eq!(&addr.to_string(), "bc1qvzvkjn4q3nszqxrv3nraga2r822xjty3ykvkuw");
         assert_eq!(addr.address_type(), Some(AddressType::P2wpkh));
-        roundtrips(&addr, Bitcoin);
+        roundtrips(&addr, Mainnet);
     }
 
     #[test]
     fn test_p2wsh() {
-        // stolen from Bitcoin transaction 5df912fda4becb1c29e928bec8d64d93e9ba8efa9b5b405bd683c86fd2c65667
+        // stolen from Bitcoin/Kaon transaction 5df912fda4becb1c29e928bec8d64d93e9ba8efa9b5b405bd683c86fd2c65667
         let script = ScriptBuf::from_hex("52210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea368e0acdfd92976b7c2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f88053ae").unwrap();
         let addr = Address::p2wsh(&script, KnownHrp::Mainnet);
         assert_eq!(
@@ -982,29 +982,29 @@ mod tests {
             "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej"
         );
         assert_eq!(addr.address_type(), Some(AddressType::P2wsh));
-        roundtrips(&addr, Bitcoin);
+        roundtrips(&addr, Mainnet);
     }
 
     #[test]
     fn test_p2shwpkh() {
-        // stolen from Bitcoin transaction: ad3fd9c6b52e752ba21425435ff3dd361d6ac271531fc1d2144843a9f550ad01
+        // stolen from Bitcoin/Kaon transaction: ad3fd9c6b52e752ba21425435ff3dd361d6ac271531fc1d2144843a9f550ad01
         let key = "026c468be64d22761c30cd2f12cbc7de255d592d7904b1bab07236897cc4c2e766"
             .parse::<CompressedPublicKey>()
             .unwrap();
         let addr = Address::p2shwpkh(&key, NetworkKind::Main);
         assert_eq!(&addr.to_string(), "3QBRmWNqqBGme9er7fMkGqtZtp4gjMFxhE");
         assert_eq!(addr.address_type(), Some(AddressType::P2sh));
-        roundtrips(&addr, Bitcoin);
+        roundtrips(&addr, Mainnet);
     }
 
     #[test]
     fn test_p2shwsh() {
-        // stolen from Bitcoin transaction f9ee2be4df05041d0e0a35d7caa3157495ca4f93b233234c9967b6901dacf7a9
+        // stolen from Bitcoin/Kaon transaction f9ee2be4df05041d0e0a35d7caa3157495ca4f93b233234c9967b6901dacf7a9
         let script = ScriptBuf::from_hex("522103e5529d8eaa3d559903adb2e881eb06c86ac2574ffa503c45f4e942e2a693b33e2102e5f10fcdcdbab211e0af6a481f5532536ec61a5fdbf7183770cf8680fe729d8152ae").unwrap();
         let addr = Address::p2shwsh(&script, NetworkKind::Main);
         assert_eq!(&addr.to_string(), "36EqgNnsWW94SreZgBWc1ANC6wpFZwirHr");
         assert_eq!(addr.address_type(), Some(AddressType::P2sh));
-        roundtrips(&addr, Bitcoin);
+        roundtrips(&addr, Mainnet);
     }
 
     #[test]
@@ -1016,7 +1016,7 @@ mod tests {
         let program = WitnessProgram::new(WitnessVersion::V13, &program).expect("valid program");
 
         let addr = Address::from_witness_program(program, KnownHrp::Mainnet);
-        roundtrips(&addr, Bitcoin);
+        roundtrips(&addr, Mainnet);
     }
 
     #[test]
@@ -1066,7 +1066,7 @@ mod tests {
         for (address, expected_type) in &addresses {
             let addr = Address::from_str(address)
                 .unwrap()
-                .require_network(Network::Bitcoin)
+                .require_network(Network::Mainnet)
                 .expect("mainnet");
             assert_eq!(&addr.address_type(), expected_type);
         }
@@ -1159,8 +1159,8 @@ mod tests {
             ["132F25rTsvBdp9JzLLBHP5mvGY66i1xdiM", "33iFwdLuRpW1uK1RTRqsoi8rR4NpDzk66k"].iter()
         {
             let addr =
-                Address::from_str(el).unwrap().require_network(Network::Bitcoin).expect("mainnet");
-            assert_eq!(addr.to_qr_uri(), format!("bitcoin:{}", el));
+                Address::from_str(el).unwrap().require_network(Network::Mainnet).expect("mainnet");
+            assert_eq!(addr.to_qr_uri(), format!("kaon:{}", el));
         }
 
         for el in [
@@ -1170,7 +1170,7 @@ mod tests {
         .iter()
         {
             let addr = Address::from_str(el).unwrap().assume_checked();
-            assert_eq!(addr.to_qr_uri(), format!("bitcoin:{}", el.to_ascii_uppercase()));
+            assert_eq!(addr.to_qr_uri(), format!("kaon:{}", el.to_ascii_uppercase()));
         }
     }
 
@@ -1188,7 +1188,7 @@ mod tests {
             "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr"
         );
         assert_eq!(address.address_type(), Some(AddressType::P2tr));
-        roundtrips(&address, Bitcoin);
+        roundtrips(&address, Mainnet);
     }
 
     #[test]
@@ -1196,7 +1196,7 @@ mod tests {
         let address_string = "bc1qhvd6suvqzjcu9pxjhrwhtrlj85ny3n2mqql5w4";
         let address = Address::from_str(address_string)
             .expect("address")
-            .require_network(Network::Bitcoin)
+            .require_network(Network::Mainnet)
             .expect("mainnet");
 
         let pubkey_string = "0347ff3dacd07a1f43805ec6808e801505a6e18245178609972a68afbc2777ff2b";
@@ -1217,7 +1217,7 @@ mod tests {
         let address_string = "3EZQk4F8GURH5sqVMLTFisD17yNeKa7Dfs";
         let address = Address::from_str(address_string)
             .expect("address")
-            .require_network(Network::Bitcoin)
+            .require_network(Network::Mainnet)
             .expect("mainnet");
 
         let pubkey_string = "0347ff3dacd07a1f43805ec6808e801505a6e18245178609972a68afbc2777ff2b";
@@ -1238,7 +1238,7 @@ mod tests {
         let address_string = "1J4LVanjHMu3JkXbVrahNuQCTGCRRgfWWx";
         let address = Address::from_str(address_string)
             .expect("address")
-            .require_network(Network::Bitcoin)
+            .require_network(Network::Mainnet)
             .expect("mainnet");
 
         let pubkey_string = "0347ff3dacd07a1f43805ec6808e801505a6e18245178609972a68afbc2777ff2b";
@@ -1287,7 +1287,7 @@ mod tests {
             address,
             Address::from_str("bc1pgllnmtxs0g058qz7c6qgaqq4qknwrqj9z7rqn9e2dzhmcfmhlu4sfadf5e")
                 .expect("address")
-                .require_network(Network::Bitcoin)
+                .require_network(Network::Mainnet)
                 .expect("mainnet")
         );
 
@@ -1313,7 +1313,7 @@ mod tests {
             address,
             Address::from_str("bc1pgllnmtxs0g058qz7c6qgaqq4qknwrqj9z7rqn9e2dzhmcfmhlu4sfadf5e")
                 .expect("address")
-                .require_network(Network::Bitcoin)
+                .require_network(Network::Mainnet)
                 .expect("mainnet")
         );
 
@@ -1334,8 +1334,8 @@ mod tests {
             ScriptBuf::from_hex("001161458e330389cd0437ee9fe3641d70cc18").unwrap();
         let expected = Err(FromScriptError::UnrecognizedScript);
 
-        assert_eq!(Address::from_script(&bad_p2wpkh, Network::Bitcoin), expected);
-        assert_eq!(Address::from_script(&bad_p2wsh, Network::Bitcoin), expected);
+        assert_eq!(Address::from_script(&bad_p2wpkh, Network::Mainnet), expected);
+        assert_eq!(Address::from_script(&bad_p2wsh, Network::Mainnet), expected);
         assert_eq!(
             Address::from_script(&invalid_segwitv0_script, &params::MAINNET),
             Err(FromScriptError::WitnessProgram(witness_program::Error::InvalidSegwitV0Length(17)))
@@ -1368,10 +1368,10 @@ mod tests {
             "bc1pgllnmtxs0g058qz7c6qgaqq4qknwrqj9z7rqn9e2dzhmcfmhlu4sfadf5e",
         ];
         for addr in &addresses {
-            let addr = Address::from_str(addr).unwrap().require_network(Network::Bitcoin).unwrap();
+            let addr = Address::from_str(addr).unwrap().require_network(Network::Mainnet).unwrap();
             for another in &addresses {
                 let another =
-                    Address::from_str(another).unwrap().require_network(Network::Bitcoin).unwrap();
+                    Address::from_str(another).unwrap().require_network(Network::Mainnet).unwrap();
                 assert_eq!(addr.matches_script_pubkey(&another.script_pubkey()), addr == another);
             }
         }
