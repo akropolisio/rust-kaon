@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! # Rust Bitcoin Internal
+//! # Rust Kaon Internal
 //!
 //! This crate is only meant to be used internally by crates in the
-//! [rust-bitcoin](https://github.com/rust-bitcoin) ecosystem.
+//! [rust-kaon](https://github.com/akropolisio/rust-kaon) ecosystem.
 
 #![no_std]
 // Experimental features we need.

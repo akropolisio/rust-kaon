@@ -19,9 +19,9 @@ use crate::internal_macros::impl_array_newtype_stringify;
 use crate::network::NetworkKind;
 use crate::prelude::*;
 
-/// Version bytes for extended public keys on the Bitcoin network.
+/// Version bytes for extended public keys on the Kaon network.
 const VERSION_BYTES_MAINNET_PUBLIC: [u8; 4] = [0x04, 0x88, 0xB2, 0x1E];
-/// Version bytes for extended private keys on the Bitcoin network.
+/// Version bytes for extended private keys on the Kaon network.
 const VERSION_BYTES_MAINNET_PRIVATE: [u8; 4] = [0x04, 0x88, 0xAD, 0xE4];
 /// Version bytes for extended public keys on any of the testnet networks.
 const VERSION_BYTES_TESTNETS_PUBLIC: [u8; 4] = [0x04, 0x35, 0x87, 0xCF];
@@ -410,7 +410,7 @@ impl DerivationPath {
     /// Concatenate `self` with `path` and return the resulting new path.
     ///
     /// ```
-    /// use bitcoin::bip32::{DerivationPath, ChildNumber};
+    /// use kaon::bip32::{DerivationPath, ChildNumber};
     /// use std::str::FromStr;
     ///
     /// let base = DerivationPath::from_str("m/42").unwrap();
@@ -434,7 +434,7 @@ impl DerivationPath {
     /// 0x80000000 is added to the hardened elements.
     ///
     /// ```
-    /// use bitcoin::bip32::DerivationPath;
+    /// use kaon::bip32::DerivationPath;
     /// use std::str::FromStr;
     ///
     /// let path = DerivationPath::from_str("m/84'/0'/0'/0/1").unwrap();
@@ -556,7 +556,7 @@ impl From<InvalidBase58PayloadLengthError> for Error {
 impl Xpriv {
     /// Construct a new master key from a seed value
     pub fn new_master(network: impl Into<NetworkKind>, seed: &[u8]) -> Result<Xpriv, Error> {
-        let mut hmac_engine: HmacEngine<sha512::Hash> = HmacEngine::new(b"Bitcoin seed");
+        let mut hmac_engine: HmacEngine<sha512::Hash> = HmacEngine::new(b"Kaon seed");
         hmac_engine.input(seed);
         let hmac_result: Hmac<sha512::Hash> = Hmac::from_engine(hmac_engine);
 

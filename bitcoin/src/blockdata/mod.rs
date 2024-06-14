@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin block data.
+//! Kaon block data.
 //!
 //! This module defines structures and functions for storing the blocks and
-//! transactions which make up the Bitcoin system.
+//! transactions which make up the Kaon system.
 
 pub mod block;
 pub mod constants;

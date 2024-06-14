@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin base58 encoding and decoding.
+//! Bitcoin/Kaon base58 encoding and decoding.
 //!
 //! This crate can be used in a no-std environment but requires an allocator.
 
@@ -193,6 +193,8 @@ mod tests {
 
     #[test]
     fn test_base58_encode() {
+        // TODO: update 
+        
         // Basics
         assert_eq!(&encode(&[0][..]), "1");
         assert_eq!(&encode(&[1][..]), "2");

@@ -1,6 +1,6 @@
 //! Regression tests for each hash type.
 
-use bitcoin_hashes::{
+use kaon_hashes::{
     hash160, ripemd160, sha1, sha256, sha256d, sha256t, sha384, sha512, sha512_256, siphash24,
     Hash as _, HashEngine as _, Hmac, HmacEngine,
 };

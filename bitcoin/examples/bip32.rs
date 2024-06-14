@@ -1,14 +1,14 @@
-extern crate bitcoin;
+extern crate kaon;
 
 use std::str::FromStr;
 use std::{env, process};
 
-use bitcoin::address::{Address, KnownHrp};
-use bitcoin::bip32::{ChildNumber, DerivationPath, Xpriv, Xpub};
-use bitcoin::hex::FromHex;
-use bitcoin::secp256k1::ffi::types::AlignedType;
-use bitcoin::secp256k1::Secp256k1;
-use bitcoin::{CompressedPublicKey, NetworkKind};
+use kaon::address::{Address, KnownHrp};
+use kaon::bip32::{ChildNumber, DerivationPath, Xpriv, Xpub};
+use kaon::hex::FromHex;
+use kaon::secp256k1::ffi::types::AlignedType;
+use kaon::secp256k1::Secp256k1;
+use kaon::{CompressedPublicKey, NetworkKind};
 
 fn main() {
     // This example derives root xprv from a 32-byte seed,

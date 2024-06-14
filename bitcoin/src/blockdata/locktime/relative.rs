@@ -22,7 +22,7 @@ pub use units::locktime::relative::{Height, Time, TimeOverflowError};
 
 /// A relative lock time value, representing either a block height or time (512 second intervals).
 ///
-/// Used for sequence numbers (`nSequence` in Bitcoin Core and [`crate::TxIn::sequence`]
+/// Used for sequence numbers (`nSequence` in Bitcoin/Kaon Core and [`crate::TxIn::sequence`]
 /// in this library) and also for the argument to opcode 'OP_CHECKSEQUENCEVERIFY`.
 ///
 /// ### Note on ordering
@@ -62,7 +62,7 @@ impl LockTime {
     /// # Examples
     ///
     /// ```rust
-    /// # use bitcoin::relative::LockTime;
+    /// # use kaon::relative::LockTime;
     ///
     /// // `from_consensus` roundtrips with `to_consensus_u32` for small values.
     /// let n_lock_time: u32 = 7000;
@@ -89,7 +89,7 @@ impl LockTime {
         }
     }
 
-    /// Constructs a `LockTime` from the sequence number of a Bitcoin input.
+    /// Constructs a `LockTime` from the sequence number of a Bitcoin/Kaon input.
     ///
     /// This method will **not** round-trip with [`Self::to_sequence`]. See the
     /// docs for [`Self::from_consensus`] for more information.
@@ -165,11 +165,11 @@ impl LockTime {
     /// # Examples
     ///
     /// ```rust
-    /// # use bitcoin::Sequence;
-    /// # use bitcoin::locktime::relative::{LockTime, Height, Time};
+    /// # use kaon::Sequence;
+    /// # use kaon::locktime::relative::{LockTime, Height, Time};
     ///
     /// # let height = 100;       // 100 blocks.
-    /// # let intervals = 70;     // Approx 10 hours.
+    /// # let intervals = 70;     // Approx 10 hours. // TODO: update
     /// # let current_height = || Height::from(height + 10);
     /// # let current_time = || Time::from_512_second_intervals(intervals + 10);
     /// # let lock = Sequence::from_height(height).to_relative_lock_time().expect("valid height");
@@ -205,8 +205,8 @@ impl LockTime {
     /// # Examples
     ///
     /// ```rust
-    /// # use bitcoin::Sequence;
-    /// # use bitcoin::locktime::relative::{LockTime, Height, Time};
+    /// # use kaon::Sequence;
+    /// # use kaon::locktime::relative::{LockTime, Height, Time};
     ///
     /// # let height = 100;       // 100 blocks.
     /// # let lock = Sequence::from_height(height).to_relative_lock_time().expect("valid height");
@@ -253,8 +253,8 @@ impl LockTime {
     /// # Examples
     ///
     /// ```rust
-    /// # use bitcoin::Sequence;
-    /// # use bitcoin::locktime::relative::{LockTime, Height, Time};
+    /// # use kaon::Sequence;
+    /// # use kaon::locktime::relative::{LockTime, Height, Time};
     ///
     /// let height: u16 = 100;
     /// let lock = Sequence::from_height(height).to_relative_lock_time().expect("valid height");
@@ -280,10 +280,10 @@ impl LockTime {
     /// # Examples
     ///
     /// ```rust
-    /// # use bitcoin::Sequence;
-    /// # use bitcoin::locktime::relative::{LockTime, Height, Time};
+    /// # use kaon::Sequence;
+    /// # use kaon::locktime::relative::{LockTime, Height, Time};
     ///
-    /// let intervals: u16 = 70; // approx 10 hours;
+    /// let intervals: u16 = 70; // approx 10 hours; // TODO: update
     /// let lock = Sequence::from_512_second_intervals(intervals).to_relative_lock_time().expect("valid time");
     /// assert!(lock.is_satisfied_by_time(Time::from_512_second_intervals(intervals + 10)).expect("a time"));
     /// ```

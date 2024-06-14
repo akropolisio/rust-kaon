@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin network-related network messages.
+//! Bitcoin/Kaon network-related network messages.
 //!
 //! This module defines network messages which describe peers and their
 //! capabilities.
@@ -167,7 +167,7 @@ mod tests {
         // address decodes should be covered by Address tests
         assert_eq!(real_decode.nonce, 16735069437859780935);
         assert_eq!(real_decode.user_agent, "/Satoshi:0.9.99/".to_string());
-        assert_eq!(real_decode.start_height, 302892);
+        assert_eq!(real_decode.start_height, 777);
         assert!(real_decode.relay);
 
         assert_eq!(serialize(&real_decode), from_sat);

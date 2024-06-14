@@ -3,14 +3,14 @@
 #![no_main]
 
 #[macro_use]
-extern crate bitcoin_hashes;
+extern crate kaon_hashes;
 
 #[cfg(feature = "alloc")] extern crate alloc;
 #[cfg(feature = "alloc")] use alloc_cortex_m::CortexMHeap;
 #[cfg(feature = "alloc")] use alloc::string::ToString;
 
-use bitcoin_hashes::{sha256, Hash, HashEngine};
-use bitcoin_io::Write;
+use kaon_hashes::{sha256, Hash, HashEngine};
+use kaon_io::Write;
 use core::str::FromStr;
 use cortex_m_rt::entry;
 use cortex_m_semihosting::{debug, hprintln};

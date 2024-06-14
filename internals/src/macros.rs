@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Various macros used by the Rust Bitcoin ecosystem.
+//! Various macros used by the Rust Kaon ecosystem.
 
 /// Implements standard array methods for a given wrapper type.
 #[macro_export]
@@ -154,7 +154,7 @@ macro_rules! const_assert {
 ///
 /// ```rust
 /// # use core::fmt::{Display, Debug};
-/// use bitcoin_internals::impl_from_infallible;
+/// use kaon_internals::impl_from_infallible;
 ///
 /// enum AlphaEnum { Item }
 /// impl_from_infallible!(AlphaEnum);

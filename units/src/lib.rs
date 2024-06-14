@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Rust Bitcoin units library
+//! Rust Kaon units library
 //!
-//! This library provides basic types used by the Rust Bitcoin ecosystem.
+//! This library provides basic types used by the Rust Bitcoin/Kaon ecosystem.
 
 // Experimental features we need.
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
@@ -17,7 +17,7 @@
 // Disable 16-bit support at least for now as we can't guarantee it yet.
 #[cfg(target_pointer_width = "16")]
 compile_error!(
-    "rust-bitcoin currently only supports architectures with pointers wider than 16 bits, let us
+    "rust-kaon currently only supports architectures with pointers wider than 16 bits, let us
     know if you want 16-bit support. Note that we do NOT guarantee that we will implement it!"
 );
 

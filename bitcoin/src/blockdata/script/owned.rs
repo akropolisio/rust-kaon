@@ -322,7 +322,7 @@ impl<'a> Extend<Instruction<'a>> for ScriptBuf {
         T: IntoIterator<Item = Instruction<'a>>,
     {
         let iter = iter.into_iter();
-        // Most of Bitcoin scripts have only a few opcodes, so we can avoid reallocations in many
+        // Most of Bitcoin & Kaon scripts have only a few opcodes, so we can avoid reallocations in many
         // cases.
         if iter.size_hint().1.map(|max| max < 6).unwrap_or(false) {
             let mut iter = iter.fuse();

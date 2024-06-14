@@ -1,13 +1,13 @@
 use honggfuzz::fuzz;
 
 fn do_test(data: &[u8]) {
-    let block_result: Result<bitcoin::blockdata::block::Block, _> =
-        bitcoin::consensus::encode::deserialize(data);
+    let block_result: Result<kaon::blockdata::block::Block, _> =
+        kaon::consensus::encode::deserialize(data);
 
     match block_result {
         Err(_) => {}
         Ok(block) => {
-            let ser = bitcoin::consensus::encode::serialize(&block);
+            let ser = kaon::consensus::encode::serialize(&block);
             assert_eq!(&ser[..], data);
             let _ = block.bip34_block_height();
             block.block_hash();

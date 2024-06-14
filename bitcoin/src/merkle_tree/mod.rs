@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin merkle tree functions.
+//! Bitcoin/Kaon merkle tree functions.
 //!
 //! # Examples
 //!
 //! ```
-//! # use bitcoin::{merkle_tree, Txid};
-//! # use bitcoin::hashes::Hash;
+//! # use kaon::{merkle_tree, Txid};
+//! # use kaon::hashes::Hash;
 //! # let tx1 = Txid::all_zeros();  // Dummy hash values.
 //! # let tx2 = Txid::all_zeros();
 //! let tx_hashes = vec![tx1, tx2]; // All the hashes we wish to merkelize.

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin blockdata network messages.
+//! Bitcoin/Kaon blockdata network messages.
 //!
 //! This module describes network messages which are used for passing
-//! Bitcoin data (blocks and transactions) around.
+//! Kaon data (blocks and transactions) around.
 
 use hashes::{sha256d, Hash as _};
 use io::{BufRead, Write};

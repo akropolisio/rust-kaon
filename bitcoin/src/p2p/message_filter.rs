@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin Client Side Block Filtering network messages.
+//! Bitcoin/Kaon Client Side Block Filtering network messages.
 //!
 //! This module describes BIP157 Client Side Block Filtering network messages.
 
@@ -27,7 +27,7 @@ impl_consensus_encoding!(GetCFilters, filter_type, start_height, stop_hash);
 pub struct CFilter {
     /// Byte identifying the type of filter being returned
     pub filter_type: u8,
-    /// Block hash of the Bitcoin block for which the filter is being returned
+    /// Block hash of the Kaon block for which the filter is being returned
     pub block_hash: BlockHash,
     /// The serialized compact filter for this block
     pub filter: Vec<u8>,

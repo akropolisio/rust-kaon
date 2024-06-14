@@ -87,7 +87,8 @@ impl std::error::Error for P2shError {
     }
 }
 
-/// Address type is either invalid or not supported in rust-bitcoin.
+/// Address type is either invalid or not supported in rust-kaon but it is supported on Kaon Network.
+/// TODO: add support of those addrs here.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct UnknownAddressTypeError(pub String);

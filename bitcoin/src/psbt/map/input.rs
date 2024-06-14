@@ -140,8 +140,8 @@ pub struct Input {
 /// # Examples
 ///
 /// ```
-/// use bitcoin::{EcdsaSighashType, TapSighashType};
-/// use bitcoin::psbt::PsbtSighashType;
+/// use kaon::{EcdsaSighashType, TapSighashType};
+/// use kaon::psbt::PsbtSighashType;
 ///
 /// let ecdsa_sighash_all: PsbtSighashType = EcdsaSighashType::All.into();
 /// let tap_sighash_all: PsbtSighashType = TapSighashType::All.into();

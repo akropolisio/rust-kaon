@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin serde macros.
+//! Kaon serde macros.
 //!
 //! This module provides internal macros used for unit tests.
 

@@ -4,7 +4,7 @@
 //!
 //! Implementations of traits defined in `std` / `io` and not in `core`.
 
-use bitcoin_io::impl_write;
+use kaon_io::impl_write;
 
 use crate::{hmac, ripemd160, sha1, sha256, sha512, siphash24, HashEngine};
 
@@ -65,7 +65,7 @@ impl_write!(
 
 #[cfg(test)]
 mod tests {
-    use bitcoin_io::Write;
+    use kaon_io::Write;
 
     use crate::{hash160, hmac, ripemd160, sha1, sha256, sha256d, sha512, siphash24, Hash};
 

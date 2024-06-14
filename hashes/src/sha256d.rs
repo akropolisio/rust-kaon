@@ -44,7 +44,7 @@ mod tests {
 
         #[rustfmt::skip]
         let tests = vec![
-            // Test vector copied out of rust-bitcoin
+            // Test vector copied out of rust-kaon
             Test {
                 input: "",
                 output: vec![

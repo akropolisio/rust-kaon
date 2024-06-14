@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! ECDSA Bitcoin signatures.
+//! ECDSA Bitcoin/Kaon signatures.
 //!
-//! This module provides ECDSA signatures used by Bitcoin that can be roundtrip (de)serialized.
+//! This module provides ECDSA signatures used by Bitcoin/Kaon that can be roundtrip (de)serialized.
 
 use core::str::FromStr;
 use core::{fmt, iter};
@@ -29,7 +29,7 @@ pub struct Signature {
 }
 
 impl Signature {
-    /// Constructs an ECDSA Bitcoin signature for [`EcdsaSighashType::All`].
+    /// Constructs an ECDSA Bitcoin/Kaon signature for [`EcdsaSighashType::All`].
     pub fn sighash_all(signature: secp256k1::ecdsa::Signature) -> Signature {
         Signature { signature, sighash_type: EcdsaSighashType::All }
     }

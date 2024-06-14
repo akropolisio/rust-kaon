@@ -97,7 +97,7 @@ fn from_engine<T: Tag>(e: sha256::HashEngine) -> Hash<T> {
 /// The syntax is:
 ///
 /// ```
-/// # use bitcoin_hashes::sha256t_hash_newtype;
+/// # use kaon_hashes::sha256t_hash_newtype;
 /// sha256t_hash_newtype! {
 ///     /// Optional documentation details here.
 ///     /// Summary is always generated.

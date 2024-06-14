@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin serde utilities.
+//! Kaon serde utilities.
 //!
 //! This module is for special serde serializations.
 
