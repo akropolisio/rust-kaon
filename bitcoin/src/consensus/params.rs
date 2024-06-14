@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin consensus parameters.
+//! Bitcoin/Kaon consensus parameters.
 //!
-//! This module provides a predefined set of parameters for different Bitcoin
+//! This module provides a predefined set of parameters for different Bitcoin/Kaon
 //! chains (such as mainnet, testnet).
 //!
 //! # Custom Signets Example
@@ -11,8 +11,8 @@
 //! custom type that can be used is such places you might want to do the following:
 //!
 //! ```
-//! use bitcoin::consensus::Params;
-//! use bitcoin::{p2p, Script, ScriptBuf, Network, Target};
+//! use kaon::consensus::Params;
+//! use kaon::{p2p, Script, ScriptBuf, Network, Target};
 //!
 //! const POW_TARGET_SPACING: u64 = 120; // Two minutes.
 //! const MAGIC: [u8; 4] = [1, 2, 3, 4];
@@ -76,6 +76,7 @@ use crate::pow::Target;
 #[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct Params {
+    // TODO: validate parameters
     /// Network for which parameters are valid.
     pub network: Network,
     /// Time when BIP16 becomes active.
@@ -94,7 +95,7 @@ pub struct Params {
     pub miner_confirmation_window: BlockInterval,
     /// Proof of work limit value. It contains the lowest possible difficulty.
     #[deprecated(since = "0.32.0", note = "field renamed to max_attainable_target")]
-    pub pow_limit: Target,
+    pub pow_limit: Target, // TODO: PoS
     /// The maximum **attainable** target value for these params.
     ///
     /// Not all target values are attainable because consensus code uses the compact format to
@@ -135,39 +136,38 @@ pub static REGTEST: Params = Params::REGTEST;
 #[allow(deprecated)] // For `pow_limit`.
 impl Params {
     /// The mainnet parameters (alias for `Params::MAINNET`).
-    pub const BITCOIN: Params = Params::MAINNET;
+    pub const KAON: Params = Params::MAINNET;
 
+    // TODO: add chain-specific details, dPOS parameters included
     /// The mainnet parameters.
     pub const MAINNET: Params = Params {
-        network: Network::Bitcoin,
-        bip16_time: 1333238400,                      // Apr 1 2012
-        bip34_height: BlockHeight::from_u32(227931), // 000000000000024b89b42a942fe0d9fea3bb44ab7bd1b19115dd6a759c0808b8
-        bip65_height: BlockHeight::from_u32(388381), // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
-        bip66_height: BlockHeight::from_u32(363725), // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
-        rule_change_activation_threshold: BlockInterval::from_u32(1916), // 95%
-        miner_confirmation_window: BlockInterval::from_u32(2016),
+        network: Network::Mainnet,
+        bip16_time: 1333238400, // Apr 1 2012
+        bip34_height: 1,
+        bip65_height: 1,
+        bip66_height: 1,
+        rule_change_activation_threshold: 10260, // 95%
+        miner_confirmation_window: 2016,
         pow_limit: Target::MAX_ATTAINABLE_MAINNET,
-        max_attainable_target: Target::MAX_ATTAINABLE_MAINNET,
-        pow_target_spacing: 10 * 60,            // 10 minutes.
-        pow_target_timespan: 14 * 24 * 60 * 60, // 2 weeks.
-        allow_min_difficulty_blocks: false,
+        pow_target_spacing: 15,            // 15 seconds.
+        pow_target_timespan: 2 * 15 * 60,  // 30 min
+        allow_min_difficulty_blocks: true, // POW
         no_pow_retargeting: false,
     };
 
     /// The testnet parameters.
     pub const TESTNET: Params = Params {
         network: Network::Testnet,
-        bip16_time: 1333238400,                      // Apr 1 2012
-        bip34_height: BlockHeight::from_u32(21111), // 0000000023b3a96d3484e5abb3755c413e7d41500f8e2a5c3f0dd01299cd8ef8
-        bip65_height: BlockHeight::from_u32(581885), // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
-        bip66_height: BlockHeight::from_u32(330776), // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
-        rule_change_activation_threshold: BlockInterval::from_u32(1512), // 75%
-        miner_confirmation_window: BlockInterval::from_u32(2016),
+        bip16_time: 1333238400, // Apr 1 2012
+        bip34_height: 1,
+        bip65_height: 1,
+        bip66_height: 1,
+        rule_change_activation_threshold: 8100, // 75%
+        miner_confirmation_window: 2016,
         pow_limit: Target::MAX_ATTAINABLE_TESTNET,
-        max_attainable_target: Target::MAX_ATTAINABLE_TESTNET,
-        pow_target_spacing: 10 * 60,            // 10 minutes.
-        pow_target_timespan: 14 * 24 * 60 * 60, // 2 weeks.
-        allow_min_difficulty_blocks: true,
+        pow_target_spacing: 12,            // 12 seconds.
+        pow_target_timespan: 2 * 15 * 60,  // 30 min
+        allow_min_difficulty_blocks: true, // POW
         no_pow_retargeting: false,
     };
 
@@ -175,40 +175,38 @@ impl Params {
     pub const SIGNET: Params = Params {
         network: Network::Signet,
         bip16_time: 1333238400, // Apr 1 2012
-        bip34_height: BlockHeight::from_u32(1),
-        bip65_height: BlockHeight::from_u32(1),
-        bip66_height: BlockHeight::from_u32(1),
-        rule_change_activation_threshold: BlockInterval::from_u32(1916), // 95%
-        miner_confirmation_window: BlockInterval::from_u32(2016),
+        bip34_height: 1,
+        bip65_height: 1,
+        bip66_height: 1,
+        rule_change_activation_threshold: 10260, // 95%
+        miner_confirmation_window: 2016,
         pow_limit: Target::MAX_ATTAINABLE_SIGNET,
-        max_attainable_target: Target::MAX_ATTAINABLE_SIGNET,
-        pow_target_spacing: 10 * 60,            // 10 minutes.
-        pow_target_timespan: 14 * 24 * 60 * 60, // 2 weeks.
-        allow_min_difficulty_blocks: false,
+        pow_target_spacing: 12,            // 12 seconds.
+        pow_target_timespan: 2 * 15 * 60,  // 30 min
+        allow_min_difficulty_blocks: true, // POW
         no_pow_retargeting: false,
     };
 
     /// The regtest parameters.
     pub const REGTEST: Params = Params {
         network: Network::Regtest,
-        bip16_time: 1333238400,                         // Apr 1 2012
-        bip34_height: BlockHeight::from_u32(100000000), // not activated on regtest
-        bip65_height: BlockHeight::from_u32(1351),
-        bip66_height: BlockHeight::from_u32(1251), // used only in rpc tests
-        rule_change_activation_threshold: BlockInterval::from_u32(108), // 75%
-        miner_confirmation_window: BlockInterval::from_u32(144),
+        bip16_time: 1333238400, // Apr 1 2012
+        bip34_height: 1,
+        bip65_height: 1,
+        bip66_height: 1,
+        rule_change_activation_threshold: 108, // 75%
+        miner_confirmation_window: 144,
         pow_limit: Target::MAX_ATTAINABLE_REGTEST,
-        max_attainable_target: Target::MAX_ATTAINABLE_REGTEST,
-        pow_target_spacing: 10 * 60,            // 10 minutes.
-        pow_target_timespan: 14 * 24 * 60 * 60, // 2 weeks.
-        allow_min_difficulty_blocks: true,
-        no_pow_retargeting: true,
+        pow_target_spacing: 12,            // 12 seconds.
+        pow_target_timespan: 2 * 15 * 60,  // 30 min
+        allow_min_difficulty_blocks: true, // POW
+        no_pow_retargeting: false,
     };
 
-    /// Creates parameters set for the given network.    /// Creates parameters set for the given network.
+    /// Creates parameters set for the given network.
     pub const fn new(network: Network) -> Self {
         match network {
-            Network::Bitcoin => Params::MAINNET,
+            Network::Mainnet => Params::MAINNET,
             Network::Testnet => Params::TESTNET,
             Network::Signet => Params::SIGNET,
             Network::Regtest => Params::REGTEST,
@@ -244,7 +242,7 @@ impl AsRef<Params> for Params {
 impl AsRef<Params> for Network {
     fn as_ref(&self) -> &Params {
         match *self {
-            Network::Bitcoin => &MAINNET,
+            Network::Mainnet => &MAINNET,
             Network::Testnet => &TESTNET,
             Network::Signet => &SIGNET,
             Network::Regtest => &REGTEST,
