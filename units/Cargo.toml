@@ -1,12 +1,12 @@
 [package]
-name = "bitcoin-units"
+name = "kaon-units"
 version = "0.1.1"
-authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>"]
+authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>", "Kaon Team <info@kaon.one>"]
 license = "CC0-1.0"
-repository = "https://github.com/rust-bitcoin/rust-bitcoin/"
-description = "Basic Bitcoin numeric units such as amount"
+repository = "https://github.com/akropolisio/rust-kaon/"
+description = "Basic Kaon numeric units such as amount"
 categories = ["cryptography::cryptocurrencies"]
-keywords = ["bitcoin", "newtypes"]
+keywords = ["bitcoin", "kaon", "newtypes"]
 readme = "README.md"
 edition = "2021"
 rust-version = "1.56.1"
@@ -22,7 +22,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-internals = { package = "bitcoin-internals", version = "0.3.0", features = ["alloc"] }
+internals = { package = "kaon-internals", version = "0.3.0", features = ["alloc"] }
 
 serde = { version = "1.0.103", default-features = false, features = ["derive"], optional = true }
 

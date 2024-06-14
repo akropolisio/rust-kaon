@@ -1,12 +1,12 @@
 [package]
 name = "base58ck"
 version = "0.1.0"
-authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>"]
+authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>", "Kaon Team <info@kaon.one>"]
 license = "CC0-1.0"
-repository = "https://github.com/rust-bitcoin/rust-bitcoin/"
-description = "Bitcoin base58 encoding with checksum."
+repository = "https://github.com/akropolisio/rust-kaon/"
+description = "Bitcoin/Kaon base58 encoding with checksum."
 categories = ["cryptography::cryptocurrencies", "encoding"]
-keywords = ["bitcoin", "base58", "encode", "decode", "checksum"]
+keywords = ["bitcoin", "kaon", "base58", "encode", "decode", "checksum"]
 readme = "README.md"
 edition = "2021"
 rust-version = "1.56.1"
@@ -21,8 +21,8 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-hashes = { package = "bitcoin_hashes", version = "0.14.0", default-features = false, features = ["alloc"] }
-internals = { package = "bitcoin-internals", version = "0.3.0", features = ["alloc"] }
+hashes = { package = "kaon_hashes", version = "0.14.0", default-features = false, features = ["alloc"] }
+internals = { package = "kaon-internals", version = "0.3.0", features = ["alloc"] }
 
 [dev-dependencies]
 hex = { package = "hex-conservative", version = "0.2.0", default-features = false, features = ["alloc"] }

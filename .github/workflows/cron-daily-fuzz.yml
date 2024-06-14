@@ -19,15 +19,15 @@ jobs:
         # over that limit with fuzzing because of the hour run time.
         fuzz_target: [
           bitcoin_deserialize_address,
-          bitcoin_deserialize_block,
-          bitcoin_deserialize_prefilled_transaction,
+          kaon_deserialize_block,
+          kaon_deserialize_prefilled_transaction,
           bitcoin_deserialize_psbt,
-          bitcoin_deserialize_script,
-          bitcoin_deserialize_transaction,
+          kaon_deserialize_script,
+          kaon_deserialize_transaction,
           bitcoin_deserialize_witness,
           bitcoin_deser_net_msg,
-          bitcoin_outpoint_string,
-          bitcoin_script_bytes_to_asm_fmt,
+          kaon_outpoint_string,
+          kaon_script_bytes_to_asm_fmt,
           hashes_json,
           hashes_ripemd160,
           hashes_sha1,
@@ -53,7 +53,7 @@ jobs:
           toolchain: '1.65.0'
       - name: fuzz
         run: |
-          if [[ "${{ matrix.fuzz_target }}" =~ ^bitcoin ]]; then
+          if [[ "${{ matrix.fuzz_target }}" =~ ^kaon ]]; then
               export RUSTFLAGS='--cfg=hashes_fuzz --cfg=secp256k1_fuzz'
           fi
           echo "Using RUSTFLAGS $RUSTFLAGS"

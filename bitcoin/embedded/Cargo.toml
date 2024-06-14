@@ -15,7 +15,7 @@ cortex-m-rt = "0.6.10"
 cortex-m-semihosting = "0.3.3"
 panic-halt = "0.2.0"
 alloc-cortex-m = "0.4.1"
-bitcoin = { path="../", default-features = false, features = ["secp-lowmemory"] }
+kaon = { path="../", default-features = false, features = ["secp-lowmemory"] }
 
 [[bin]]
 name = "embedded"
@@ -30,14 +30,14 @@ lto = true # better optimizations
 [patch.crates-io.base58ck]
 path = "../../base58"
 
-[patch.crates-io.bitcoin_hashes]
+[patch.crates-io.kaon_hashes]
 path = "../../hashes"
 
-[patch.crates-io.bitcoin-internals]
+[patch.crates-io.kaon-internals]
 path = "../../internals"
 
-[patch.crates-io.bitcoin-io]
+[patch.crates-io.kaon-io]
 path = "../../io"
 
-[patch.crates-io.bitcoin-units]
+[patch.crates-io.kaon-units]
 path = "../../units"

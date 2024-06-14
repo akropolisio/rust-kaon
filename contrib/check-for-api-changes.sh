@@ -45,7 +45,7 @@ run_cargo() {
 }
 
 generate_api_files_bitcoin() {
-    local crate="bitcoin"
+    local crate="kaon"
     pushd "$REPO_DIR/$crate" > /dev/null
 
     run_cargo | $SORT | uniq > "$API_DIR/$crate/default-features.txt"

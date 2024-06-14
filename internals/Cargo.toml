@@ -1,11 +1,11 @@
 [package]
-name = "bitcoin-internals"
+name = "kaon-internals"
 version = "0.3.0"
-authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>", "The Rust Bitcoin developers"]
+authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>", "The Rust Bitcoin developers", "Kaon Team <info@kaon.one>"]
 license = "CC0-1.0"
-repository = "https://github.com/rust-bitcoin/rust-bitcoin/"
-documentation = "https://docs.rs/bitcoin-internals"
-description = "Internal types and macros used by rust-bitcoin ecosystem"
+repository = "https://github.com/akropolisio/rust-kaon/"
+documentation = "https://docs.rs/kaon-internals"
+description = "Internal types and macros used by rust-kaon ecosystem"
 categories = ["cryptography::cryptocurrencies"]
 keywords = ["internal"]
 readme = "README.md"

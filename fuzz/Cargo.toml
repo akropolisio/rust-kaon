@@ -1,5 +1,5 @@
 [package]
-name = "bitcoin-fuzz"
+name = "kaon-fuzz"
 edition = "2021"
 rust-version = "1.56.1"
 version = "0.0.1"
@@ -11,7 +11,7 @@ cargo-fuzz = true
 
 [dependencies]
 honggfuzz = { version = "0.5.55", default-features = false }
-bitcoin = { path = "../bitcoin", features = [ "serde" ] }
+kaon = { path = "../kaon", features = [ "serde" ] }
 
 serde = { version = "1.0.103", features = [ "derive" ] }
 serde_json = "1.0"
@@ -21,43 +21,43 @@ unexpected_cfgs = { level = "deny", check-cfg = ['cfg(fuzzing)'] }
 
 [[bin]]
 name = "bitcoin_deserialize_address"
-path = "fuzz_targets/bitcoin/deserialize_address.rs"
+path = "fuzz_targets/kaon/deserialize_address.rs"
 
 [[bin]]
-name = "bitcoin_deserialize_block"
-path = "fuzz_targets/bitcoin/deserialize_block.rs"
+name = "kaon_deserialize_block"
+path = "fuzz_targets/kaon/deserialize_block.rs"
 
 [[bin]]
-name = "bitcoin_deserialize_prefilled_transaction"
-path = "fuzz_targets/bitcoin/deserialize_prefilled_transaction.rs"
+name = "kaon_deserialize_prefilled_transaction"
+path = "fuzz_targets/kaon/deserialize_prefilled_transaction.rs"
 
 [[bin]]
 name = "bitcoin_deserialize_psbt"
-path = "fuzz_targets/bitcoin/deserialize_psbt.rs"
+path = "fuzz_targets/kaon/deserialize_psbt.rs"
 
 [[bin]]
-name = "bitcoin_deserialize_script"
-path = "fuzz_targets/bitcoin/deserialize_script.rs"
+name = "kaon_deserialize_script"
+path = "fuzz_targets/kaon/deserialize_script.rs"
 
 [[bin]]
-name = "bitcoin_deserialize_transaction"
-path = "fuzz_targets/bitcoin/deserialize_transaction.rs"
+name = "kaon_deserialize_transaction"
+path = "fuzz_targets/kaon/deserialize_transaction.rs"
 
 [[bin]]
 name = "bitcoin_deserialize_witness"
-path = "fuzz_targets/bitcoin/deserialize_witness.rs"
+path = "fuzz_targets/kaon/deserialize_witness.rs"
 
 [[bin]]
 name = "bitcoin_deser_net_msg"
-path = "fuzz_targets/bitcoin/deser_net_msg.rs"
+path = "fuzz_targets/kaon/deser_net_msg.rs"
 
 [[bin]]
-name = "bitcoin_outpoint_string"
-path = "fuzz_targets/bitcoin/outpoint_string.rs"
+name = "kaon_outpoint_string"
+path = "fuzz_targets/kaon/outpoint_string.rs"
 
 [[bin]]
-name = "bitcoin_script_bytes_to_asm_fmt"
-path = "fuzz_targets/bitcoin/script_bytes_to_asm_fmt.rs"
+name = "kaon_script_bytes_to_asm_fmt"
+path = "fuzz_targets/kaon/script_bytes_to_asm_fmt.rs"
 
 [[bin]]
 name = "hashes_json"

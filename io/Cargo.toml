@@ -1,10 +1,10 @@
 [package]
-name = "bitcoin-io"
+name = "kaon-io"
 version = "0.1.2"
 authors = ["Matt Corallo <birchneutea@mattcorallo.com>"]
 license = "CC0-1.0"
-repository = "https://github.com/rust-bitcoin/rust-bitcoin"
-documentation = "https://docs.rs/bitcoin-io/"
+repository = "https://github.com/akropolisio/rust-kaon/"
+documentation = "https://docs.rs/kaon-io/"
 description = "Simple I/O traits for no-std (and std) environments"
 categories = ["no-std"]
 keywords = [ "io", "no-std" ]

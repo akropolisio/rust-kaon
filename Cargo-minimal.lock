@@ -18,8 +18,8 @@ checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
 name = "base58ck"
 version = "0.1.0"
 dependencies = [
- "bitcoin-internals",
- "bitcoin_hashes",
+ "kaon-internals",
+ "kaon_hashes",
  "hex-conservative",
 ]
 
@@ -46,17 +46,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitcoin"
+name = "kaon"
 version = "0.32.0-rc1"
 dependencies = [
  "base58ck",
  "base64",
  "bech32",
  "bincode",
- "bitcoin-internals",
- "bitcoin-io",
- "bitcoin-units",
- "bitcoin_hashes",
+ "kaon-internals",
+ "kaon-io",
+ "kaon-units",
+ "kaon_hashes",
  "bitcoinconsensus",
  "hex-conservative",
  "hex_lit",
@@ -69,41 +69,41 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitcoin-fuzz"
+name = "kaon-fuzz"
 version = "0.0.1"
 dependencies = [
- "bitcoin",
+ "kaon",
  "honggfuzz",
  "serde",
  "serde_json",
 ]
 
 [[package]]
-name = "bitcoin-internals"
+name = "kaon-internals"
 version = "0.3.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
-name = "bitcoin-io"
+name = "kaon-io"
 version = "0.1.2"
 
 [[package]]
-name = "bitcoin-units"
+name = "kaon-units"
 version = "0.1.1"
 dependencies = [
- "bitcoin-internals",
+ "kaon-internals",
  "serde",
  "serde_json",
  "serde_test",
 ]
 
 [[package]]
-name = "bitcoin_hashes"
+name = "kaon_hashes"
 version = "0.14.0"
 dependencies = [
- "bitcoin-io",
+ "kaon-io",
  "hex-conservative",
  "schemars",
  "serde",
@@ -349,7 +349,7 @@ version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e0cc0f1cf93f4969faf3ea1c7d8a9faed25918d96affa959720823dfe86d4f3"
 dependencies = [
- "bitcoin_hashes",
+ "kaon_hashes",
  "rand",
  "secp256k1-sys",
  "serde",

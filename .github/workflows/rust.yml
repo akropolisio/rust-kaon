@@ -1,4 +1,4 @@
----   # rust-bitcoin CI: If you edit this file please update README.md
+---   # rust-kaon CI: If you edit this file please update README.md
 on:   # yamllint disable-line rule:truthy
   push:
     branches:
@@ -33,7 +33,7 @@ jobs:
       - name: "Checkout maintainer tools"
         uses: actions/checkout@v4
         with:
-          repository: rust-bitcoin/rust-bitcoin-maintainer-tools
+          repository: rust-kaon/rust-kaon-maintainer-tools
           rev: b2ac115
           path: maintainer-tools
       - name: "Select toolchain"
@@ -57,7 +57,7 @@ jobs:
       - name: "Checkout maintainer tools"
         uses: actions/checkout@v4
         with:
-          repository: rust-bitcoin/rust-bitcoin-maintainer-tools
+          repository: rust-kaon/rust-kaon-maintainer-tools
           rev: b2ac115
           path: maintainer-tools
       - name: "Select toolchain"
@@ -82,7 +82,7 @@ jobs:
       - name: "Checkout maintainer tools"
         uses: actions/checkout@v4
         with:
-          repository: rust-bitcoin/rust-bitcoin-maintainer-tools
+          repository: rust-kaon/rust-kaon-maintainer-tools
           rev: b2ac115
           path: maintainer-tools
       - name: "Select toolchain"
@@ -108,7 +108,7 @@ jobs:
       - name: "Checkout maintainer tools"
         uses: actions/checkout@v4
         with:
-          repository: rust-bitcoin/rust-bitcoin-maintainer-tools
+          repository: rust-kaon/rust-kaon-maintainer-tools
           rev: b2ac115
           path: maintainer-tools
       - name: "Select toolchain"
@@ -135,7 +135,7 @@ jobs:
       - name: "Checkout maintainer tools"
         uses: actions/checkout@v4
         with:
-          repository: rust-bitcoin/rust-bitcoin-maintainer-tools
+          repository: rust-kaon/rust-kaon-maintainer-tools
           rev: b2ac115
           path: maintainer-tools
       - name: "Select toolchain"
@@ -159,7 +159,7 @@ jobs:
       - name: "Checkout maintainer tools"
         uses: actions/checkout@v4
         with:
-          repository: rust-bitcoin/rust-bitcoin-maintainer-tools
+          repository: rust-kaon/rust-kaon-maintainer-tools
           rev: b2ac115
           path: maintainer-tools
       - name: "Select toolchain"
@@ -185,7 +185,7 @@ jobs:
       - name: "Checkout maintainer tools"
         uses: actions/checkout@v4
         with:
-          repository: rust-bitcoin/rust-bitcoin-maintainer-tools
+          repository: rust-kaon/rust-kaon-maintainer-tools
           rev: b2ac115
           path: maintainer-tools
       - name: "Select toolchain"
@@ -249,8 +249,8 @@ jobs:
           targets: thumbv7m-none-eabi
       - name: "Install rust-src"
         run: rustup component add rust-src
-      - name: "Run bitcoin/embedded"
-        run: cd bitcoin/embedded && cargo run --target thumbv7m-none-eabi
+      - name: "Run kaon/embedded"
+        run: cd kaon/embedded && cargo run --target thumbv7m-none-eabi
       - name: "Run hashes/embedded no alloc"
         run: cd hashes/embedded && cargo run --target thumbv7m-none-eabi
       - name: "Run hashes/embedded with alloc"

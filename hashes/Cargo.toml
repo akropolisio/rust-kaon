@@ -1,13 +1,13 @@
 [package]
-name = "bitcoin_hashes"
+name = "kaon_hashes"
 version = "0.14.0"
-authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>"]
+authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>", "Kaon Team <info@kaon.one>"]
 license = "CC0-1.0"
-repository = "https://github.com/rust-bitcoin/rust-bitcoin"
-documentation = "https://docs.rs/bitcoin_hashes/"
-description = "Hash functions used by the rust-bitcoin eccosystem"
+repository = "https://github.com/akropolisio/rust-kaon"
+documentation = "https://docs.rs/kaon_hashes/"
+description = "Hash functions used by the rust-kaon eccosystem"
 categories = ["algorithms"]
-keywords = [ "crypto", "bitcoin", "hash", "digest" ]
+keywords = [ "crypto", "bitcoin", "kaon", "hash", "digest" ]
 readme = "README.md"
 edition = "2021"
 rust-version = "1.56.1"
@@ -15,10 +15,10 @@ exclude = ["tests", "contrib"]
 
 [features]
 default = ["std"]
-std = ["alloc", "hex/std", "bitcoin-io/std"]
+std = ["alloc", "hex/std", "kaon-io/std"]
 alloc = ["hex/alloc"]
 # If you want I/O you must enable either "std" or "io".
-io = ["bitcoin-io"]
+io = ["kaon-io"]
 # Smaller (but slower) implementation of sha256, sha512 and ripemd160
 small-hash = []
 
@@ -29,7 +29,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 hex = { package = "hex-conservative", version = "0.2.0", default-features = false }
 
-bitcoin-io = { version = "0.1.1", default-features = false, optional = true }
+kaon-io = { version = "0.1.1", default-features = false, optional = true }
 schemars = { version = "0.8.3", default-features = false, optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
 
