@@ -31,10 +31,10 @@ impl Builder {
     ///
     /// Integers are encoded as little-endian signed-magnitude numbers, but there are dedicated
     /// opcodes to push some small integers.
-    pub fn push_int(self, data: i64) -> Builder {
+    pub fn push_int(self, data: i128) -> Builder {
         // We can special-case -1, 1-16
         if data == -1 || (1..=16).contains(&data) {
-            let opcode = Opcode::from((data - 1 + opcodes::OP_TRUE.to_u8() as i64) as u8);
+            let opcode = Opcode::from((data - 1 + opcodes::OP_TRUE.to_u8() as i128) as u8);
             self.push_opcode(opcode)
         }
         // We can also special-case zero
@@ -50,7 +50,7 @@ impl Builder {
     /// Adds instructions to push an integer onto the stack without optimization.
     ///
     /// This uses the explicit encoding regardless of the availability of dedicated opcodes.
-    pub(in crate::blockdata) fn push_int_non_minimal(self, data: i64) -> Builder {
+    pub(in crate::blockdata) fn push_int_non_minimal(self, data: i128) -> Builder {
         let mut buf = [0u8; 8];
         let len = write_scriptint(&mut buf, data);
         self.push_slice(&<&PushBytes>::from(&buf)[..len])

@@ -33,13 +33,13 @@ impl<'a> Instruction<'a> {
     /// if it can be coerced into a number.
     ///
     /// This does not require the script num to be minimal.
-    pub fn script_num(&self) -> Option<i64> {
+    pub fn script_num(&self) -> Option<i128> {
         match self {
             Instruction::Op(op) => {
                 let v = op.to_u8();
                 match v {
                     // OP_PUSHNUM_1 ..= OP_PUSHNUM_16
-                    0x51..=0x60 => Some(v as i64 - 0x50),
+                    0x51..=0x60 => Some(v as i128 - 0x50),
                     // OP_PUSHNUM_NEG1
                     0x4f => Some(-1),
                     _ => None,
@@ -81,7 +81,7 @@ impl<'a> Instruction<'a> {
                 _ => None,
             },
         }
-    }
+    } // TODO: ensure 128
 }
 
 /// Iterator over a script returning parsed opcodes.

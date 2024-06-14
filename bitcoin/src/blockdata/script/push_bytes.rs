@@ -36,9 +36,9 @@ mod primitive {
         }
     }
 
-    /// Byte slices that can be in Bitcoin script.
+    /// Byte slices that can be in Kaon script.
     ///
-    /// The encoding of Bitcoin script restricts data pushes to be less than 2^32 bytes long.
+    /// The encoding of Kaon script restricts data pushes to be less than 2^32 bytes long.
     /// This type represents slices that are guaranteed to be within the limit so they can be put in
     /// the script safely.
     #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -79,7 +79,7 @@ mod primitive {
         /// Decodes an integer in script(minimal CScriptNum) format.
         ///
         /// Notice that this fails on overflow: the result is the same as in
-        /// bitcoind, that only 4-byte signed-magnitude values may be read as
+        /// kaond, that only 4-byte signed-magnitude values may be read as
         /// numbers. They can be added or subtracted (and a long time ago,
         /// multiplied and divided), and this may result in numbers which
         /// can't be written out in 4 bytes or less. This is ok! The number
@@ -92,7 +92,7 @@ mod primitive {
         /// simply say, anything in excess of 32 bits is no longer a number.
         /// This is basically a ranged type implementation.
         ///
-        /// This code is based on the `CScriptNum` constructor in Bitcoin Core (see `script.h`).
+        /// This code is based on the `CScriptNum` constructor in Kaon Core (see `script.h`).
         pub fn read_scriptint(&self) -> Result<i64, Error> {
             let last = match self.as_bytes().last() {
                 Some(last) => last,
@@ -118,7 +118,7 @@ mod primitive {
             }
 
             Ok(scriptint_parse(self.as_bytes()))
-        }
+        } // TODO: varint for uint128
     }
 
     macro_rules! delegate_index {

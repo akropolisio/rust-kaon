@@ -283,7 +283,7 @@ fn script_serialize() {
 
 #[test]
 fn scriptint_round_trip() {
-    fn build_scriptint(n: i64) -> Vec<u8> {
+    fn build_scriptint(n: i128) -> Vec<u8> {
         let mut buf = [0u8; 8];
         let len = write_scriptint(&mut buf, n);
         assert!(len <= 8);
@@ -783,7 +783,7 @@ fn test_script_serde_human_and_not() {
     let json = serde_json::to_string(&script).unwrap();
     assert_eq!(json, "\"000102\"");
     let bincode = bincode::serialize(&script).unwrap();
-    assert_eq!(bincode, [3, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2]); // bincode adds u64 for length, serde_cbor use varint
+    assert_eq!(bincode, [3, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2]); // bincode adds u64 for length, serde_cbor use compactsize
 
     // Deserialize
     assert_eq!(script, serde_json::from_str::<ScriptBuf>(&json).unwrap());

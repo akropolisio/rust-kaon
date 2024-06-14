@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin scripts.
+//! Bitcoin/Kaon scripts.
 //!
 //! *[See also the `Script` type](Script).*
 //!
 //! This module provides the structures and functions needed to support scripts.
 //!
 //! <details>
-//! <summary>What is Bitcoin script</summary>
+//! <summary>What is Bitcoin/Kaon script</summary>
 //!
-//! Scripts define Bitcoin's digital signature scheme: a signature is formed
+//! Scripts define Bitcoin's and Kaon's digital signature scheme: a signature is formed
 //! from a script (the second half of which is defined by a coin to be spent,
 //! and the first half provided by the spending transaction), and is valid iff
-//! the script leaves `TRUE` on the stack after being evaluated. Bitcoin's
+//! the script leaves `TRUE` on the stack after being evaluated. Bitcoin's and Kaon's
 //! script is a stack-based assembly language similar in spirit to [Forth].
 //!
 //! Script is represented as a sequence of bytes on the wire, each byte representing an operation,
@@ -28,7 +28,7 @@
 //! In this library we chose to keep the byte representation in memory and decode opcodes only when
 //! processing the script. This is similar to Rust choosing to represent strings as UTF-8-encoded
 //! bytes rather than slice of `char`s. In both cases the individual items can have different sizes
-//! and forcing them to be larger would waste memory and, in case of Bitcoin script, even some
+//! and forcing them to be larger would waste memory and, in case of Bitcoin or Kaon script, even some
 //! performance (forcing allocations).
 //!
 //! ## `Script` vs `ScriptBuf` vs `Builder`
@@ -85,9 +85,9 @@ pub use self::{
 };
 
 hashes::hash_newtype! {
-    /// A hash of Bitcoin Script bytecode.
+    /// A hash of Kaon Script bytecode.
     pub struct ScriptHash(hash160::Hash);
-    /// SegWit version of a Bitcoin Script bytecode hash.
+    /// SegWit version of a Kaon Script bytecode hash.
     pub struct WScriptHash(sha256::Hash);
 }
 impl_asref_push_bytes!(ScriptHash, WScriptHash);
@@ -124,7 +124,8 @@ impl From<&Script> for WScriptHash {
 /// more than 4 bytes, this is in line with Bitcoin Core (see [`CScriptNum::serialize`]).
 ///
 /// [`CScriptNum::serialize`]: <https://github.com/bitcoin/bitcoin/blob/8ae2808a4354e8dcc697f76bacc5e2f2befe9220/src/script/script.h#L345>
-pub fn write_scriptint(out: &mut [u8; 8], n: i64) -> usize {
+// TODO: add method to write u128 values since they are supported in Kaon Network's script
+pub fn write_scriptint(out: &mut [u8; 8], n: i128) -> usize {
     let mut len = 0;
     if n == 0 {
         return len;
@@ -155,16 +156,111 @@ pub fn write_scriptint(out: &mut [u8; 8], n: i64) -> usize {
     len
 }
 
+// TODO: support negative int128 values
+/// Decodes an integer in script(minimal CScriptNum) format, varint for u128 implementation.
+pub fn read_scriptint128(v: &[u8]) -> Result<i128, Error> {
+    let _last = match v.last() {
+        Some(last) => last,
+        None => return Ok(0),
+    };
+    if v.len() > 8 {
+        return Err(Error::NumericOverflow);
+    }
+
+    let mut high: u64 = 0;
+    let mut low: u64 = 0;
+    let mut i: u8 = 0;
+
+    loop {
+        let ch_data = v[i as usize];
+        let a = low << 7;
+        let b = (ch_data & 0x7F) as u64;
+        low = a | b;
+        i += 1;
+        if (ch_data & 0x80) != 0 {
+            low += 1;
+        } else {
+            break;
+        }
+    }
+
+    loop {
+        let ch_data = v[i as usize];
+        let a = high << 7;
+        let b = (ch_data & 0x7F) as u64;
+        high = a | b;
+        i += 1;
+        if (ch_data & 0x80) != 0 {
+            high += 1;
+        } else {
+            break;
+        }
+    }
+
+    Ok((high as i128) << 64 ^ (low as i128))
+}
+
+/// Decodes an integer in script(minimal CScriptNum) format.
+///
+/// Notice that this fails on overflow: the result is the same as in
+/// kaond, that only 8-byte signed-magnitude values may be read as
+/// numbers. They can be added or subtracted (and a long time ago,
+/// multiplied and divided), and this may result in numbers which
+/// can't be written out in 8 bytes or less. This is ok! The number
+/// just can't be read as a number again.
+/// This is a bit crazy and subtle, but it makes sense: you can load
+/// 32-bit numbers and do anything with them, which back when mult/div
+/// was allowed, could result in up to a 128-bit number. We don't want
+/// overflow since that's surprising --- and we don't want numbers that
+/// don't fit in 128 bits (for efficiency on modern processors) so we
+/// simply say, anything in excess of 32 bits is no longer a number.
+/// This is basically a ranged type implementation.
+///
+/// This code is based on the `CScriptNum` constructor in Kaon Core (see `script.h`).
+pub fn read_scriptint(v: &[u8]) -> Result<i128, Error> {
+    let last = match v.last() {
+        Some(last) => last,
+        None => return Ok(0),
+    };
+    if v.len() > 4 {
+        return read_scriptint128(v);
+    }
+    if v.len() > 8 {
+        return Err(Error::NumericOverflow);
+    }
+    // Comment and code copied from Bitcoin Core:
+    // https://github.com/bitcoin/bitcoin/blob/447f50e4aed9a8b1d80e1891cda85801aeb80b4e/src/script/script.h#L247-L262
+    // The actual implementation would be provided later
+    // If the most-significant-byte - excluding the sign bit - is zero
+    // then we're not minimal. Note how this test also rejects the
+    // negative-zero encoding, 0x80. TODO: use ZigZag to support int128 values
+    if (*last & 0x7f) == 0 {
+        // One exception: if there's more than one byte and the most
+        // significant bit of the second-most-significant-byte is set
+        // it would conflict with the sign bit. An example of this case
+        // is +-255, which encode to 0xff00 and 0xff80 respectively.
+        // (big-endian).
+        if v.len() <= 1 || (v[v.len() - 2] & 0x80) == 0 {
+            return Err(Error::NonMinimalPush);
+        }
+    }
+
+    Ok(scriptint_parse(v))
+}
+
 /// Decodes an integer in script format without non-minimal error.
 ///
-/// The overflow error for slices over 4 bytes long is still there.
+/// The overflow error for slices over 8 bytes long is still there.
 /// See [`push_bytes::PushBytes::read_scriptint`] for a description of some subtleties of
 /// this function.
-pub fn read_scriptint_non_minimal(v: &[u8]) -> Result<i64, Error> {
+pub fn read_scriptint_non_minimal(v: &[u8]) -> Result<i128, Error> {
     if v.is_empty() {
         return Ok(0);
     }
     if v.len() > 4 {
+        return read_scriptint128(v);
+    }
+    if v.len() > 8 {
         return Err(Error::NumericOverflow);
     }
 
@@ -172,8 +268,8 @@ pub fn read_scriptint_non_minimal(v: &[u8]) -> Result<i64, Error> {
 }
 
 // Caller to guarantee that `v` is not empty.
-fn scriptint_parse(v: &[u8]) -> i64 {
-    let (mut ret, sh) = v.iter().fold((0, 0), |(acc, sh), n| (acc + ((*n as i64) << sh), sh + 8));
+fn scriptint_parse(v: &[u8]) -> i128 {
+    let (mut ret, sh) = v.iter().fold((0, 0), |(acc, sh), n| (acc + ((*n as i128) << sh), sh + 8));
     if v[v.len() - 1] & 0x80 != 0 {
         ret &= (1 << (sh - 1)) - 1;
         ret = -ret;

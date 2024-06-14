@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: CC0-1.0
 
 //! Implements `Weight` and associated features.
+//! Even though Kaon uses i128 to store Amounts, the effect on weights implied by this
+//! insrease in denomination is minited to u64
 
 use core::fmt;
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};

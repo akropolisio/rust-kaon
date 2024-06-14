@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin consensus-encodable types.
+//! Bitcoin/Kaon consensus-encodable types.
 //!
 //! This is basically a replacement of the `Encodable` trait which does
 //! normalization of endianness etc., to ensure that the encoding matches
@@ -23,8 +23,10 @@ use io::{BufRead, Cursor, Read, Write};
 
 use crate::bip152::{PrefilledTransaction, ShortId};
 use crate::bip158::{FilterHash, FilterHeader};
-use crate::blockdata::block::{self, BlockHash, TxMerkleNode};
-use crate::blockdata::transaction::{Transaction, TxIn, TxOut};
+use crate::blockdata::block::{self, BlockHash, BlockStateRoot, BlockUTXORoot, TxMerkleNode};
+use crate::blockdata::transaction::{
+    MNVote, Transaction, TxIn, TxOut, ValidatorRegister, ValidatorVote,
+};
 use crate::consensus::{DecodeError, IterReader};
 #[cfg(feature = "std")]
 use crate::p2p::{
@@ -54,8 +56,10 @@ pub enum Error {
         /// The invalid checksum.
         actual: [u8; 4],
     },
-    /// VarInt was encoded in a non-minimal way.
-    NonMinimalVarInt,
+    /// CompactSize was encoded in a non-minimal way.
+    NonMinimalCompactSize,
+    /// VarInt has too large size.
+    TooLargeVarInt,
     /// Parsing error.
     ParseFailed(&'static str),
     /// Unsupported Segwit flag.
@@ -74,7 +78,8 @@ impl fmt::Display for Error {
                 write!(f, "allocation of oversized vector: requested {}, maximum {}", r, m),
             InvalidChecksum { expected: ref e, actual: ref a } =>
                 write!(f, "invalid checksum: expected {:x}, actual {:x}", e.as_hex(), a.as_hex()),
-            NonMinimalVarInt => write!(f, "non-minimal varint"),
+            NonMinimalCompactSize => write!(f, "non-minimal compactsize"),
+            TooLargeVarInt => write!(f, "varint size is too large"),
             ParseFailed(ref s) => write!(f, "parse failed: {}", s),
             UnsupportedSegwitFlag(ref swflag) =>
                 write!(f, "unsupported segwit version: {}", swflag),
@@ -91,7 +96,8 @@ impl std::error::Error for Error {
             Io(e) => Some(e),
             OversizedVectorAllocation { .. }
             | InvalidChecksum { .. }
-            | NonMinimalVarInt
+            | NonMinimalCompactSize
+            | TooLargeVarInt
             | ParseFailed(_)
             | UnsupportedSegwitFlag(_) => None,
         }
@@ -184,7 +190,7 @@ pub fn deserialize_partial<T: Decodable>(data: &[u8]) -> Result<(T, usize), Erro
     Ok((rv, consumed))
 }
 
-/// Extensions of `Write` to encode data as per Bitcoin consensus.
+/// Extensions of `Write` to encode data as per Bitcoin/Kaon consensus.
 pub trait WriteExt: Write {
     /// Outputs a 64-bit unsigned integer.
     fn emit_u64(&mut self, v: u64) -> Result<(), io::Error>;
@@ -211,7 +217,7 @@ pub trait WriteExt: Write {
     fn emit_slice(&mut self, v: &[u8]) -> Result<(), io::Error>;
 }
 
-/// Extensions of `Read` to decode data as per Bitcoin consensus.
+/// Extensions of `Read` to decode data as per Kaon consensus.
 pub trait ReadExt: Read {
     /// Reads a 64-bit unsigned integer.
     fn read_u64(&mut self) -> Result<u64, Error>;
@@ -304,6 +310,7 @@ impl<R: Read + ?Sized> ReadExt for R {
     }
 }
 
+// TODO: this value would be increased with 2-level mempool for big transactions will be introduced
 /// Maximum size, in bytes, of a vector we are allowed to decode.
 pub const MAX_VEC_SIZE: usize = 4_000_000;
 
@@ -372,9 +379,17 @@ pub trait Decodable: Sized {
     }
 }
 
+/// A CompactSize-encoded variable-length integer.
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
+pub struct CompactSize(pub u64);
+
 /// A variable-length unsigned integer.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
 pub struct VarInt(pub u64);
+
+/// A variable-length for Amount.
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
+pub struct VarInt128(pub u128);
 
 /// Data and a 4-byte checksum.
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -433,11 +448,19 @@ impl_int_encodable!(i16, read_i16, emit_i16);
 impl_int_encodable!(i32, read_i32, emit_i32);
 impl_int_encodable!(i64, read_i64, emit_i64);
 
-#[allow(clippy::len_without_is_empty)] // VarInt has on concept of 'is_empty'.
-impl VarInt {
-    /// Returns the number of bytes this varint contributes to a transaction size.
+#[allow(clippy::len_without_is_empty)] // CompactSize has no concept of 'is_empty'.
+impl CompactSize {
+    /// Returns the number of bytes this CompactSize contributes to a transaction size.
     ///
     /// Returns 1 for 0..=0xFC, 3 for 0xFD..=(2^16-1), 5 for 0x10000..=(2^32-1), and 9 otherwise.
+    /// Note: It is important to remember that starting from 0xFD size value the actual size of the data
+    /// would be stored in the next bytes sequence.
+    ///
+    /// Details:
+    /// size <  253        -- 1 byte
+    /// size <= USHRT_MAX  -- 3 bytes  (253 + 2 bytes)
+    /// size <= UINT_MAX   -- 5 bytes  (254 + 4 bytes)
+    /// size >  UINT_MAX   -- 9 bytes  (255 + 8 bytes)
     #[inline]
     pub const fn size(&self) -> usize {
         match self.0 {
@@ -449,22 +472,22 @@ impl VarInt {
     }
 }
 
-/// Implements `From<T> for VarInt`.
+/// Implements `From<T> for CompactSize`.
 ///
-/// `VarInt`s are consensus encoded as `u64`s so we store them as such. Casting from any integer size smaller than or equal to `u64` is always safe and the cast value is correctly handled by `consensus_encode`.
+/// `CompactSize`s are consensus encoded as `u64`s so we store them as such. Casting from any integer size smaller than or equal to `u64` is always safe and the cast value is correctly handled by `consensus_encode`.
 macro_rules! impl_var_int_from {
     ($($ty:tt),*) => {
         $(
-            /// Creates a `VarInt` from a `usize` by casting the to a `u64`.
-            impl From<$ty> for VarInt {
-                fn from(x: $ty) -> Self { VarInt(x as u64) }
+            /// Creates a `CompactSize` from a `usize` by casting the to a `u64`.
+            impl From<$ty> for CompactSize {
+                fn from(x: $ty) -> Self { CompactSize(x as u64) }
             }
         )*
     }
 }
 impl_var_int_from!(u8, u16, u32, u64, usize);
 
-impl Encodable for VarInt {
+impl Encodable for CompactSize {
     #[inline]
     fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         match self.0 {
@@ -491,7 +514,7 @@ impl Encodable for VarInt {
     }
 }
 
-impl Decodable for VarInt {
+impl Decodable for CompactSize {
     #[inline]
     fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, Error> {
         let n = ReadExt::read_u8(r)?;
@@ -499,31 +522,223 @@ impl Decodable for VarInt {
             0xFF => {
                 let x = ReadExt::read_u64(r)?;
                 if x < 0x100000000 {
-                    Err(self::Error::NonMinimalVarInt)
+                    Err(self::Error::NonMinimalCompactSize)
                 } else {
-                    Ok(VarInt::from(x))
+                    Ok(CompactSize::from(x))
                 }
             }
             0xFE => {
                 let x = ReadExt::read_u32(r)?;
                 if x < 0x10000 {
-                    Err(self::Error::NonMinimalVarInt)
+                    Err(self::Error::NonMinimalCompactSize)
                 } else {
-                    Ok(VarInt::from(x))
+                    Ok(CompactSize::from(x))
                 }
             }
             0xFD => {
                 let x = ReadExt::read_u16(r)?;
                 if x < 0xFD {
-                    Err(self::Error::NonMinimalVarInt)
+                    Err(self::Error::NonMinimalCompactSize)
                 } else {
-                    Ok(VarInt::from(x))
+                    Ok(CompactSize::from(x))
                 }
             }
-            n => Ok(VarInt::from(n)),
+            n => Ok(CompactSize::from(n)),
         }
     }
 }
+
+/// Variable-length integers: bytes are a MSB base-128 encoding of the number.
+///
+/// The high bit in each byte signifies whether another digit follows. To make
+/// sure the encoding is one-to-one, one is subtracted from all but the last digit.
+/// Thus, the byte sequence a[] with length len, where all but the last byte
+/// has bit 128 set, encodes the number:
+///
+///  (a[len-1] & 0x7F) + sum(i=1..len-1, 128^i*((a[len-i-1] & 0x7F)+1))
+///
+/// Properties:
+///  Very small (0-127: 1 byte, 128-16511: 2 bytes, 16512-2113663: 3 bytes)
+///  Every integer has exactly one encoding
+///  Encoding does not depend on size of original integer type
+///  No redundancy: every (infinite) byte sequence corresponds to a list
+///   of encoded integers.
+///
+/// 0:         [0x00]  256:        [0x81 0x00]
+/// 1:         [0x01]  16383:      [0xFE 0x7F]
+/// 127:       [0x7F]  16384:      [0xFF 0x00]
+/// 128:  [0x80 0x00]  16511: [0x80 0xFF 0x7F]
+/// 255:  [0x80 0x7F]  65535: [0x82 0xFD 0x7F]
+/// 2^32:           [0x8E 0xFE 0xFE 0xFF 0x00]
+///
+impl Encodable for VarInt {
+    #[inline]
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+        let mut n = self.0;
+        const SIZE: usize = 10;
+        let mut tmp = [0u8; SIZE];
+        let mut len = 0;
+        loop {
+            let a = (n & 0x7F) as u8;
+            let b = (if len != 0 { 0x80 } else { 0x00 }) as u8;
+            tmp[len] = a | b;
+            if n <= 0x7F {
+                break;
+            }
+            n = (n >> 7) - 1;
+            len += 1;
+        }
+        for _ in 0..len {
+            let _ = u8::consensus_encode(&tmp[len], w);
+        }
+        Ok(len)
+    }
+}
+
+impl Decodable for VarInt {
+    #[inline]
+    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, Error> {
+        let mut n: u64 = 0;
+        loop {
+            let ch_data = u8::consensus_decode(&mut *r)?;
+            if n > u64::MAX >> 7 {
+                return Err(self::Error::TooLargeVarInt);
+            }
+            let a = n << 7;
+            let b = (ch_data & 0x7F) as u64;
+            n = a | b;
+            if (ch_data & 0x80) != 0 {
+                if n == u64::MAX {
+                    return Err(self::Error::TooLargeVarInt);
+                }
+                n += 1;
+            } else {
+                break;
+            }
+        }
+        Ok(VarInt::from(n))
+    }
+}
+
+/// Implements `From<T> for VarInt`.
+macro_rules! impl_var_int_from {
+    ($($ty:tt),*) => {
+        $(
+            /// Creates a `VarInt` from a `usize` by casting the to a `u64`.
+            impl From<$ty> for VarInt {
+                fn from(x: $ty) -> Self { VarInt(x as u64) }
+            }
+        )*
+    }
+}
+impl_var_int_from!(u8, u16, u32, u64, usize);
+
+// TODO: Support negative values in i128
+// TODO: Add length verification
+// TODO: Add tests
+const MAX_U128_SIZE: usize = 16;
+
+impl Encodable for VarInt128 {
+    #[inline]
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+        if self.0 == 0 {
+            w.emit_u8(0)?;
+            return Ok(1 as usize);
+        }
+
+        let mut high = (self.0 >> 64) as u64;
+        let mut low = self.0 as u64;
+
+        let mut tmp = [0u8; MAX_U128_SIZE];
+        let mut len = 0;
+        loop {
+            let a = (high & 0x7F) as u8;
+            let b = (if len != 0 { 0x80 } else { 0x00 }) as u8;
+            tmp[len] = a | b;
+            if high <= 0x7F {
+                break;
+            }
+            high = (high >> 7) - 1;
+            len += 1;
+        }
+        loop {
+            let a = (low & 0x7F) as u8;
+            let b = (if len != 0 { 0x80 } else { 0x00 }) as u8;
+            tmp[len] = a | b;
+            if low <= 0x7F {
+                break;
+            }
+            low = (low >> 7) - 1;
+            len += 1;
+        }
+
+        w.emit_u8(len as u8)?;
+        // TODO len -= 1; ?
+
+        for _ in 0..len {
+            let _ = u8::consensus_encode(&tmp[len], w);
+        }
+        Ok(len)
+    }
+}
+
+impl Decodable for VarInt128 {
+    #[inline]
+    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, Error> {
+        let size = ReadExt::read_u8(r)? as usize;
+        if size == 0 {
+            return Ok(VarInt128::from(0u128));
+        }
+
+        let mut high: u64 = 0;
+        let mut low: u64 = 0;
+        let mut i: u8 = 0;
+
+        let mut slice = vec![0u8; size];
+        r.read_exact(&mut slice)?;
+
+        loop {
+            let ch_data = slice[i as usize];
+            let a = low << 7;
+            let b = (ch_data & 0x7F) as u64;
+            low = a | b;
+            i += 1;
+            if (ch_data & 0x80) != 0 {
+                low += 1;
+            } else {
+                break;
+            }
+        }
+
+        loop {
+            let ch_data = slice[i as usize];
+            let a = high << 7;
+            let b = (ch_data & 0x7F) as u64;
+            high = a | b;
+            i += 1;
+            if (ch_data & 0x80) != 0 {
+                high += 1;
+            } else {
+                break;
+            }
+        }
+
+        Ok(VarInt128::from((high as u128) << 64 ^ (low as u128)))
+    }
+}
+
+/// Implements `From<T> for VarInt128`.
+macro_rules! impl_var_int_from {
+    ($($ty:tt),*) => {
+        $(
+            /// Creates a `VarInt128` from a `usize` by casting the to a `u128`.
+            impl From<$ty> for VarInt128 {
+                fn from(x: $ty) -> Self { VarInt128(x as u128) }
+            }
+        )*
+    }
+}
+impl_var_int_from!(u128, i128);
 
 impl Encodable for bool {
     #[inline]
@@ -544,7 +759,7 @@ impl Encodable for String {
     #[inline]
     fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         let b = self.as_bytes();
-        let vi_len = VarInt(b.len() as u64).consensus_encode(w)?;
+        let vi_len = CompactSize(b.len() as u64).consensus_encode(w)?;
         w.emit_slice(b)?;
         Ok(vi_len + b.len())
     }
@@ -562,7 +777,7 @@ impl Encodable for Cow<'static, str> {
     #[inline]
     fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         let b = self.as_bytes();
-        let vi_len = VarInt(b.len() as u64).consensus_encode(w)?;
+        let vi_len = CompactSize(b.len() as u64).consensus_encode(w)?;
         w.emit_slice(b)?;
         Ok(vi_len + b.len())
     }
@@ -643,7 +858,7 @@ macro_rules! impl_vec {
                 w: &mut W,
             ) -> core::result::Result<usize, io::Error> {
                 let mut len = 0;
-                len += VarInt(self.len() as u64).consensus_encode(w)?;
+                len += CompactSize(self.len() as u64).consensus_encode(w)?;
                 for c in self.iter() {
                     len += c.consensus_encode(w)?;
                 }
@@ -656,7 +871,7 @@ macro_rules! impl_vec {
             fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
                 r: &mut R,
             ) -> core::result::Result<Self, Error> {
-                let len = VarInt::consensus_decode_from_finite_reader(r)?.0;
+                let len = CompactSize::consensus_decode_from_finite_reader(r)?.0;
                 // Do not allocate upfront more items than if the sequence of type
                 // occupied roughly quarter a block. This should never be the case
                 // for normal data, but even if that's not true - `push` will just
@@ -678,15 +893,20 @@ impl_vec!(block::Header);
 impl_vec!(FilterHash);
 impl_vec!(FilterHeader);
 impl_vec!(TxMerkleNode);
+impl_vec!(BlockStateRoot);
+impl_vec!(BlockUTXORoot);
 impl_vec!(Transaction);
 impl_vec!(TxOut);
 impl_vec!(TxIn);
 impl_vec!(Vec<u8>);
 impl_vec!(u64);
 impl_vec!(TapLeafHash);
-impl_vec!(VarInt);
+impl_vec!(CompactSize);
 impl_vec!(ShortId);
 impl_vec!(PrefilledTransaction);
+impl_vec!(MNVote);
+impl_vec!(ValidatorVote);
+impl_vec!(ValidatorRegister);
 
 #[cfg(feature = "std")]
 impl_vec!(Inventory);
@@ -699,7 +919,7 @@ pub(crate) fn consensus_encode_with_size<W: Write + ?Sized>(
     data: &[u8],
     w: &mut W,
 ) -> Result<usize, io::Error> {
-    let vi_len = VarInt(data.len() as u64).consensus_encode(w)?;
+    let vi_len = CompactSize(data.len() as u64).consensus_encode(w)?;
     w.emit_slice(data)?;
     Ok(vi_len + data.len())
 }
@@ -744,7 +964,7 @@ impl Encodable for Vec<u8> {
 impl Decodable for Vec<u8> {
     #[inline]
     fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, Error> {
-        let len = VarInt::consensus_decode(r)?.0 as usize;
+        let len = CompactSize::consensus_decode(r)?.0 as usize;
         // most real-world vec of bytes data, wouldn't be larger than 128KiB
         let opts = ReadBytesFromFiniteReaderOpts { len, chunk_size: 128 * 1024 };
         read_bytes_from_finite_reader(r, opts)
@@ -955,45 +1175,45 @@ mod tests {
     }
 
     #[test]
-    fn serialize_varint_test() {
-        assert_eq!(serialize(&VarInt(10)), vec![10u8]);
-        assert_eq!(serialize(&VarInt(0xFC)), vec![0xFCu8]);
-        assert_eq!(serialize(&VarInt(0xFD)), vec![0xFDu8, 0xFD, 0]);
-        assert_eq!(serialize(&VarInt(0xFFF)), vec![0xFDu8, 0xFF, 0xF]);
-        assert_eq!(serialize(&VarInt(0xF0F0F0F)), vec![0xFEu8, 0xF, 0xF, 0xF, 0xF]);
+    fn serialize_compactsize_test() {
+        assert_eq!(serialize(&CompactSize(10)), vec![10u8]);
+        assert_eq!(serialize(&CompactSize(0xFC)), vec![0xFCu8]);
+        assert_eq!(serialize(&CompactSize(0xFD)), vec![0xFDu8, 0xFD, 0]);
+        assert_eq!(serialize(&CompactSize(0xFFF)), vec![0xFDu8, 0xFF, 0xF]);
+        assert_eq!(serialize(&CompactSize(0xF0F0F0F)), vec![0xFEu8, 0xF, 0xF, 0xF, 0xF]);
         assert_eq!(
-            serialize(&VarInt(0xF0F0F0F0F0E0)),
+            serialize(&CompactSize(0xF0F0F0F0F0E0)),
             vec![0xFFu8, 0xE0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0, 0]
         );
         assert_eq!(
-            test_varint_encode(0xFF, &0x100000000_u64.to_le_bytes()).unwrap(),
-            VarInt(0x100000000)
+            test_compactsize_encode(0xFF, &0x100000000_u64.to_le_bytes()).unwrap(),
+            CompactSize(0x100000000)
         );
-        assert_eq!(test_varint_encode(0xFE, &0x10000_u64.to_le_bytes()).unwrap(), VarInt(0x10000));
-        assert_eq!(test_varint_encode(0xFD, &0xFD_u64.to_le_bytes()).unwrap(), VarInt(0xFD));
+        assert_eq!(test_compactsize_encode(0xFE, &0x10000_u64.to_le_bytes()).unwrap(), CompactSize(0x10000));
+        assert_eq!(test_compactsize_encode(0xFD, &0xFD_u64.to_le_bytes()).unwrap(), CompactSize(0xFD));
 
         // Test that length calc is working correctly
-        test_varint_len(VarInt(0), 1);
-        test_varint_len(VarInt(0xFC), 1);
-        test_varint_len(VarInt(0xFD), 3);
-        test_varint_len(VarInt(0xFFFF), 3);
-        test_varint_len(VarInt(0x10000), 5);
-        test_varint_len(VarInt(0xFFFFFFFF), 5);
-        test_varint_len(VarInt(0xFFFFFFFF + 1), 9);
-        test_varint_len(VarInt(u64::MAX), 9);
+        test_compactsize_len(CompactSize(0), 1);
+        test_compactsize_len(CompactSize(0xFC), 1);
+        test_compactsize_len(CompactSize(0xFD), 3);
+        test_compactsize_len(CompactSize(0xFFFF), 3);
+        test_compactsize_len(CompactSize(0x10000), 5);
+        test_compactsize_len(CompactSize(0xFFFFFFFF), 5);
+        test_compactsize_len(CompactSize(0xFFFFFFFF + 1), 9);
+        test_compactsize_len(CompactSize(u64::MAX), 9);
     }
 
-    fn test_varint_len(varint: VarInt, expected: usize) {
+    fn test_compactsize_len(compactsize: CompactSize, expected: usize) {
         let mut encoder = vec![];
-        assert_eq!(varint.consensus_encode(&mut encoder).unwrap(), expected);
-        assert_eq!(varint.size(), expected);
+        assert_eq!(compactsize.consensus_encode(&mut encoder).unwrap(), expected);
+        assert_eq!(compactsize.size(), expected);
     }
 
-    fn test_varint_encode(n: u8, x: &[u8]) -> Result<VarInt, Error> {
+    fn test_compactsize_encode(n: u8, x: &[u8]) -> Result<CompactSize, Error> {
         let mut input = [0u8; 9];
         input[0] = n;
         input[1..x.len() + 1].copy_from_slice(x);
-        deserialize_partial::<VarInt>(&input).map(|t| t.0)
+        deserialize_partial::<CompactSize>(&input).map(|t| t.0)
     }
 
     #[test]
@@ -1001,52 +1221,52 @@ mod tests {
         // Check the edges for variant int
         assert_eq!(
             discriminant(
-                &test_varint_encode(0xFF, &(0x100000000_u64 - 1).to_le_bytes()).unwrap_err()
+                &test_compactsize_encode(0xFF, &(0x100000000_u64 - 1).to_le_bytes()).unwrap_err()
             ),
-            discriminant(&Error::NonMinimalVarInt)
+            discriminant(&Error::NonMinimalCompactSize)
         );
         assert_eq!(
-            discriminant(&test_varint_encode(0xFE, &(0x10000_u64 - 1).to_le_bytes()).unwrap_err()),
-            discriminant(&Error::NonMinimalVarInt)
+            discriminant(&test_compactsize_encode(0xFE, &(0x10000_u64 - 1).to_le_bytes()).unwrap_err()),
+            discriminant(&Error::NonMinimalCompactSize)
         );
         assert_eq!(
-            discriminant(&test_varint_encode(0xFD, &(0xFD_u64 - 1).to_le_bytes()).unwrap_err()),
-            discriminant(&Error::NonMinimalVarInt)
+            discriminant(&test_compactsize_encode(0xFD, &(0xFD_u64 - 1).to_le_bytes()).unwrap_err()),
+            discriminant(&Error::NonMinimalCompactSize)
         );
 
         assert_eq!(
             discriminant(&deserialize::<Vec<u8>>(&[0xfd, 0x00, 0x00]).unwrap_err()),
-            discriminant(&Error::NonMinimalVarInt)
+            discriminant(&Error::NonMinimalCompactSize)
         );
         assert_eq!(
             discriminant(&deserialize::<Vec<u8>>(&[0xfd, 0xfc, 0x00]).unwrap_err()),
-            discriminant(&Error::NonMinimalVarInt)
+            discriminant(&Error::NonMinimalCompactSize)
         );
         assert_eq!(
             discriminant(&deserialize::<Vec<u8>>(&[0xfd, 0xfc, 0x00]).unwrap_err()),
-            discriminant(&Error::NonMinimalVarInt)
+            discriminant(&Error::NonMinimalCompactSize)
         );
         assert_eq!(
             discriminant(&deserialize::<Vec<u8>>(&[0xfe, 0xff, 0x00, 0x00, 0x00]).unwrap_err()),
-            discriminant(&Error::NonMinimalVarInt)
+            discriminant(&Error::NonMinimalCompactSize)
         );
         assert_eq!(
             discriminant(&deserialize::<Vec<u8>>(&[0xfe, 0xff, 0xff, 0x00, 0x00]).unwrap_err()),
-            discriminant(&Error::NonMinimalVarInt)
+            discriminant(&Error::NonMinimalCompactSize)
         );
         assert_eq!(
             discriminant(
                 &deserialize::<Vec<u8>>(&[0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
                     .unwrap_err()
             ),
-            discriminant(&Error::NonMinimalVarInt)
+            discriminant(&Error::NonMinimalCompactSize)
         );
         assert_eq!(
             discriminant(
                 &deserialize::<Vec<u8>>(&[0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00])
                     .unwrap_err()
             ),
-            discriminant(&Error::NonMinimalVarInt)
+            discriminant(&Error::NonMinimalCompactSize)
         );
 
         let mut vec_256 = vec![0; 259];
@@ -1184,6 +1404,8 @@ mod tests {
         test_len_is_max_vec::<BlockHash>();
         test_len_is_max_vec::<FilterHash>();
         test_len_is_max_vec::<TxMerkleNode>();
+        test_len_is_max_vec::<BlockStateRoot>();
+        test_len_is_max_vec::<BlockUTXORoot>();
         test_len_is_max_vec::<Transaction>();
         test_len_is_max_vec::<TxOut>();
         test_len_is_max_vec::<TxIn>();
@@ -1201,8 +1423,8 @@ mod tests {
         T: fmt::Debug,
     {
         let rand_io_err = Error::Io(io::Error::new(io::ErrorKind::Other, ""));
-        let varint = VarInt((super::MAX_VEC_SIZE / mem::size_of::<T>()) as u64);
-        let err = deserialize::<Vec<T>>(&serialize(&varint)).unwrap_err();
+        let compactsize = CompactSize((super::MAX_VEC_SIZE / mem::size_of::<T>()) as u64);
+        let err = deserialize::<Vec<T>>(&serialize(&compactsize)).unwrap_err();
         assert_eq!(discriminant(&err), discriminant(&rand_io_err));
     }
 

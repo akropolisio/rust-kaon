@@ -55,7 +55,7 @@ pub fn verify_script_with_flags<F: Into<u32>>(
 ) -> Result<(), BitcoinconsensusError> {
     bitcoinconsensus::verify_with_flags(
         script.as_bytes(),
-        amount.to_sat(),
+        amount.to_sat() as u64,
         spending_tx,
         None,
         index,
@@ -181,8 +181,8 @@ impl Transaction {
 /// Wrapped error from `bitcoinconsensus`.
 // We do this for two reasons:
 // 1. We don't want the error to be part of the public API because we do not want to expose the
-//    unusual versioning used in `bitcoinconsensus` to users of `rust-bitcoin`.
-// 2. We want to implement `std::error::Error` if the "std" feature is enabled in `rust-bitcoin` but
+//    unusual versioning used in `bitcoinconsensus` to users of `rust-kaon`.
+// 2. We want to implement `std::error::Error` if the "std" feature is enabled in `rust-kaon` but
 //    not in `bitcoinconsensus`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]

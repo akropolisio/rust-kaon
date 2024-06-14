@@ -18,9 +18,12 @@ use crate::weight::Weight;
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
-pub struct FeeRate(u64);
+pub struct FeeRate(u128);
 
 impl FeeRate {
+    // TODO: validate rates
+    // the basic formula in the Kaon Network is 6 * CENT (aKAON * 1e9) is min fee and 60 * CENT is avg fee
+
     /// 0 sat/kwu.
     ///
     /// Equivalent to [`MIN`](Self::MIN), may better express intent in some contexts.
@@ -32,25 +35,25 @@ impl FeeRate {
     pub const MIN: FeeRate = FeeRate::ZERO;
 
     /// Maximum possible value.
-    pub const MAX: FeeRate = FeeRate(u64::MAX);
+    pub const MAX: FeeRate = FeeRate(u128::MAX);
 
     /// Minimum fee rate required to broadcast a transaction.
     ///
-    /// The value matches the default Bitcoin Core policy at the time of library release.
+    /// The value matches the default Bitcoin/Kaon Core policy at the time of library release.
     pub const BROADCAST_MIN: FeeRate = FeeRate::from_sat_per_vb_unchecked(1);
 
     /// Fee rate used to compute dust amount.
     pub const DUST: FeeRate = FeeRate::from_sat_per_vb_unchecked(3);
 
     /// Constructs `FeeRate` from satoshis per 1000 weight units.
-    pub const fn from_sat_per_kwu(sat_kwu: u64) -> Self { FeeRate(sat_kwu) }
+    pub const fn from_sat_per_kwu(sat_kwu: u128) -> Self { FeeRate(sat_kwu) }
 
     /// Constructs `FeeRate` from satoshis per virtual bytes.
     ///
     /// # Errors
     ///
     /// Returns `None` on arithmetic overflow.
-    pub fn from_sat_per_vb(sat_vb: u64) -> Option<Self> {
+    pub fn from_sat_per_vb(sat_vb: u128) -> Option<Self> {
         // 1 vb == 4 wu
         // 1 sat/vb == 1/4 sat/wu
         // sat_vb sat/vb * 1000 / 4 == sat/kwu
@@ -58,28 +61,28 @@ impl FeeRate {
     }
 
     /// Constructs `FeeRate` from satoshis per virtual bytes without overflow check.
-    pub const fn from_sat_per_vb_unchecked(sat_vb: u64) -> Self { FeeRate(sat_vb * (1000 / 4)) }
+    pub const fn from_sat_per_vb_unchecked(sat_vb: u128) -> Self { FeeRate(sat_vb * (1000 / 4)) }
 
     /// Returns raw fee rate.
     ///
     /// Can be used instead of `into()` to avoid inference issues.
-    pub const fn to_sat_per_kwu(self) -> u64 { self.0 }
+    pub const fn to_sat_per_kwu(self) -> u128 { self.0 }
 
     /// Converts to sat/vB rounding down.
-    pub const fn to_sat_per_vb_floor(self) -> u64 { self.0 / (1000 / 4) }
+    pub const fn to_sat_per_vb_floor(self) -> u128 { self.0 / (1000 / 4) }
 
     /// Converts to sat/vB rounding up.
-    pub const fn to_sat_per_vb_ceil(self) -> u64 { (self.0 + (1000 / 4 - 1)) / (1000 / 4) }
+    pub const fn to_sat_per_vb_ceil(self) -> u128 { (self.0 + (1000 / 4 - 1)) / (1000 / 4) }
 
     /// Checked multiplication.
     ///
     /// Computes `self * rhs` returning `None` if overflow occurred.
-    pub fn checked_mul(self, rhs: u64) -> Option<Self> { self.0.checked_mul(rhs).map(Self) }
+    pub fn checked_mul(self, rhs: u128) -> Option<Self> { self.0.checked_mul(rhs).map(Self) }
 
     /// Checked division.
     ///
     /// Computes `self / rhs` returning `None` if `rhs == 0`.
-    pub fn checked_div(self, rhs: u64) -> Option<Self> { self.0.checked_div(rhs).map(Self) }
+    pub fn checked_div(self, rhs: u128) -> Option<Self> { self.0.checked_div(rhs).map(Self) }
 
     /// Checked weight multiplication.
     ///
@@ -87,7 +90,7 @@ impl FeeRate {
     ///
     /// `None` is returned if an overflow occurred.
     pub fn checked_mul_by_weight(self, rhs: Weight) -> Option<Amount> {
-        let sats = self.0.checked_mul(rhs.to_wu())?.checked_add(999)? / 1000;
+        let sats = self.0.checked_mul(rhs.to_wu() as u128)?.checked_add(999)? / 1000;
         Some(Amount::from_sat(sats))
     }
 
@@ -118,7 +121,7 @@ impl fmt::Display for FeeRate {
     }
 }
 
-impl From<FeeRate> for u64 {
+impl From<FeeRate> for u128 {
     fn from(value: FeeRate) -> Self { value.to_sat_per_kwu() }
 }
 
@@ -127,7 +130,7 @@ impl Mul<FeeRate> for Weight {
     type Output = Amount;
 
     fn mul(self, rhs: FeeRate) -> Self::Output {
-        Amount::from_sat((rhs.to_sat_per_kwu() * self.to_wu() + 999) / 1000)
+        Amount::from_sat((rhs.to_sat_per_kwu() * (self.to_wu() as u128) + 999) / 1000)
     }
 }
 
@@ -140,10 +143,10 @@ impl Mul<Weight> for FeeRate {
 impl Div<Weight> for Amount {
     type Output = FeeRate;
 
-    fn div(self, rhs: Weight) -> Self::Output { FeeRate(self.to_sat() * 1000 / rhs.to_wu()) }
+    fn div(self, rhs: Weight) -> Self::Output { FeeRate(self.to_sat() * 1000 / (rhs.to_wu() as u128)) }
 }
 
-crate::impl_parse_str_from_int_infallible!(FeeRate, u64, from_sat_per_kwu);
+crate::impl_parse_str_from_int_infallible!(FeeRate, u128, from_sat_per_kwu);
 
 #[cfg(test)]
 mod tests {
@@ -152,8 +155,8 @@ mod tests {
     #[test]
     fn fee_rate_const_test() {
         assert_eq!(0, FeeRate::ZERO.to_sat_per_kwu());
-        assert_eq!(u64::MIN, FeeRate::MIN.to_sat_per_kwu());
-        assert_eq!(u64::MAX, FeeRate::MAX.to_sat_per_kwu());
+        assert_eq!(u128::MIN, FeeRate::MIN.to_sat_per_kwu());
+        assert_eq!(u128::MAX, FeeRate::MAX.to_sat_per_kwu());
         assert_eq!(250, FeeRate::BROADCAST_MIN.to_sat_per_kwu());
         assert_eq!(750, FeeRate::DUST.to_sat_per_kwu());
     }
@@ -166,7 +169,7 @@ mod tests {
 
     #[test]
     fn fee_rate_from_sat_per_vb_overflow_test() {
-        let fee_rate = FeeRate::from_sat_per_vb(u64::MAX);
+        let fee_rate = FeeRate::from_sat_per_vb(u128::MAX);
         assert!(fee_rate.is_none());
     }
 
@@ -179,7 +182,7 @@ mod tests {
     #[test]
     #[cfg(debug_assertions)]
     #[should_panic]
-    fn from_sat_per_vb_unchecked_panic_test() { FeeRate::from_sat_per_vb_unchecked(u64::MAX); }
+    fn from_sat_per_vb_unchecked_panic_test() { FeeRate::from_sat_per_vb_unchecked(u128::MAX); }
 
     #[test]
     fn raw_feerate_test() {
@@ -194,7 +197,7 @@ mod tests {
         let fee_rate = FeeRate(10).checked_mul(10).expect("expected feerate in sat/kwu");
         assert_eq!(FeeRate(100), fee_rate);
 
-        let fee_rate = FeeRate(10).checked_mul(u64::MAX);
+        let fee_rate = FeeRate(10).checked_mul(u128::MAX);
         assert!(fee_rate.is_none());
     }
 
