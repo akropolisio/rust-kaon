@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin amounts.
+//! Bitcoin/Kaon amounts.
 //!
 //! This module mainly introduces the [Amount] and [SignedAmount] types.
 //! We refer to the documentation on the types for more information.
+//! Important:
+//! In order to avoid any confusion every btc mention was changed to KAON.
+//! If that'll create a problem for developers, we may create series with aliases.
 
 #[cfg(feature = "alloc")]
 use alloc::string::{String, ToString};
@@ -19,96 +22,127 @@ use internals::error::InputString;
 use internals::write_err;
 
 /// A set of denominations in which amounts can be expressed.
+/// msats, ustats, nsats and psats are described in
+/// BOLT11, see: https://github.com/lightning/bolts/blob/master/11-payment-encoding.md
 ///
+/// Added prefix Atto- for the lowest denomination: AttoKAON(aKAON) or 1e-18 KAON
 /// # Examples
 ///
 /// ```
 /// # use core::str::FromStr;
-/// # use bitcoin_units::Amount;
+/// # use kaon_units::Amount;
 ///
-/// assert_eq!(Amount::from_str("1 BTC").unwrap(), Amount::from_sat(100_000_000));
-/// assert_eq!(Amount::from_str("1 cBTC").unwrap(), Amount::from_sat(1_000_000));
-/// assert_eq!(Amount::from_str("1 mBTC").unwrap(), Amount::from_sat(100_000));
-/// assert_eq!(Amount::from_str("1 uBTC").unwrap(), Amount::from_sat(100));
-/// assert_eq!(Amount::from_str("10 nBTC").unwrap(), Amount::from_sat(1));
-/// assert_eq!(Amount::from_str("10000 pBTC").unwrap(), Amount::from_sat(1));
-/// assert_eq!(Amount::from_str("1 bit").unwrap(), Amount::from_sat(100));
-/// assert_eq!(Amount::from_str("1 sat").unwrap(), Amount::from_sat(1));
-/// assert_eq!(Amount::from_str("1000 msats").unwrap(), Amount::from_sat(1));
+/// assert_eq!(Amount::from_str("1 KAON").unwrap(), Amount::from_sat(1_000_000_000_000_000_000));
+/// assert_eq!(Amount::from_str("1 cKAON").unwrap(), Amount::from_sat(10_000_000_000_000_000));
+/// assert_eq!(Amount::from_str("1 mKAON").unwrap(), Amount::from_sat(1_000_000_000_000_000));
+/// assert_eq!(Amount::from_str("1 uKAON").unwrap(), Amount::from_sat(1_000_000_000_000));
+/// assert_eq!(Amount::from_str("1 nKAON").unwrap(), Amount::from_sat(1_000_000_000));
+/// assert_eq!(Amount::from_str("1 pKAON").unwrap(), Amount::from_sat(1_000_000));
+/// assert_eq!(Amount::from_str("1 aKAON").unwrap(), Amount::from_sat(1));
+/// assert_eq!(Amount::from_str("1 bit").unwrap(), Amount::from_sat(1_000_000_000_000));
+/// assert_eq!(Amount::from_str("1 sat").unwrap(), Amount::from_sat(10_000_000_000));
+/// assert_eq!(Amount::from_str("1 msats").unwrap(), Amount::from_sat(10_000_000));
+/// assert_eq!(Amount::from_str("1 usats").unwrap(), Amount::from_sat(10_000));
+/// assert_eq!(Amount::from_str("1 nsats").unwrap(), Amount::from_sat(10));
+/// assert_eq!(Amount::from_str("100 psats").unwrap(), Amount::from_sat(1));
 /// ```
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 #[non_exhaustive]
 pub enum Denomination {
-    /// BTC
-    Bitcoin,
-    /// cBTC
-    CentiBitcoin,
-    /// mBTC
-    MilliBitcoin,
-    /// uBTC
-    MicroBitcoin,
-    /// nBTC
-    NanoBitcoin,
-    /// pBTC
-    PicoBitcoin,
+    /// KAON
+    KAON,
+    /// cKAON
+    CentiKAON,
+    /// mKAON
+    MilliKAON,
+    /// uKAON
+    MicroKAON,
+    /// nKAON
+    NanoKAON,
+    /// pKAON
+    PicoKAON,
+    /// aKAON
+    AttoKAON,
     /// bits
     Bit,
     /// satoshi
     Satoshi,
     /// msat
     MilliSatoshi,
+    /// usat
+    MicroSatoshi,
+    /// nsat
+    NanoSatoshi,
+    /// psat
+    PicoSatoshi,
 }
 
 impl Denomination {
-    /// Convenience alias for `Denomination::Bitcoin`.
-    pub const BTC: Self = Denomination::Bitcoin;
+    /// Convenience alias for `Denomination::KAON`.
+    pub const KAON: Self = Denomination::KAON;
 
     /// Convenience alias for `Denomination::Satoshi`.
     pub const SAT: Self = Denomination::Satoshi;
 
-    /// The number of decimal places more than a satoshi.
+    /// Convenience alias for `Denomination::AttoKAON`.
+    pub const A_KAON: Self = Denomination::AttoKAON;
+
+    /// The number of decimal places more than AttoKAON.
     fn precision(self) -> i8 {
         match self {
-            Denomination::Bitcoin => -8,
-            Denomination::CentiBitcoin => -6,
-            Denomination::MilliBitcoin => -5,
-            Denomination::MicroBitcoin => -2,
-            Denomination::NanoBitcoin => 1,
-            Denomination::PicoBitcoin => 4,
-            Denomination::Bit => -2,
-            Denomination::Satoshi => 0,
-            Denomination::MilliSatoshi => 3,
+            Denomination::KAON => -18,
+            Denomination::CentiKAON => -16,
+            Denomination::MilliKAON => -15,
+            Denomination::MicroKAON => -12,
+            Denomination::NanoKAON => -9,
+            Denomination::PicoKAON => -6,
+            Denomination::AttoKAON => 0,
+            Denomination::Bit => -12,
+            Denomination::Satoshi => -10,
+            Denomination::MilliSatoshi => -7,
+            Denomination::MicroSatoshi => -4,
+            Denomination::NanoSatoshi => -1,
+            Denomination::PicoSatoshi => 2,
         }
     }
 
     /// Returns stringly representation of this
     fn as_str(self) -> &'static str {
         match self {
-            Denomination::Bitcoin => "BTC",
-            Denomination::CentiBitcoin => "cBTC",
-            Denomination::MilliBitcoin => "mBTC",
-            Denomination::MicroBitcoin => "uBTC",
-            Denomination::NanoBitcoin => "nBTC",
-            Denomination::PicoBitcoin => "pBTC",
+            Denomination::KAON => "KAON",
+            Denomination::CentiKAON => "cKAON",
+            Denomination::MilliKAON => "mKAON",
+            Denomination::MicroKAON => "uKAON",
+            Denomination::NanoKAON => "nKAON",
+            Denomination::PicoKAON => "pKAON",
+            Denomination::AttoKAON => "aKAON",
             Denomination::Bit => "bits",
             Denomination::Satoshi => "satoshi",
             Denomination::MilliSatoshi => "msat",
+            Denomination::MicroSatoshi => "usat",
+            Denomination::NanoSatoshi => "nsat",
+            Denomination::PicoSatoshi => "psat",
         }
     }
 
     /// The different str forms of denominations that are recognized.
     fn forms(s: &str) -> Option<Self> {
         match s {
-            "BTC" | "btc" => Some(Denomination::Bitcoin),
-            "cBTC" | "cbtc" => Some(Denomination::CentiBitcoin),
-            "mBTC" | "mbtc" => Some(Denomination::MilliBitcoin),
-            "uBTC" | "ubtc" => Some(Denomination::MicroBitcoin),
-            "nBTC" | "nbtc" => Some(Denomination::NanoBitcoin),
-            "pBTC" | "pbtc" => Some(Denomination::PicoBitcoin),
+            "KAON" | "kaon" => Some(Denomination::KAON),
+            "cKAON" | "ckaon" => Some(Denomination::CentiKAON),
+            "mKAON" | "mkaon" => Some(Denomination::MilliKAON),
+            "uKAON" | "ukaon" => Some(Denomination::MicroKAON),
+            "nKAON" | "nkaon" => Some(Denomination::NanoKAON),
+            "pKAON" | "pkaon" => Some(Denomination::PicoKAON),
+            "aKAON" | "akaon" => Some(Denomination::AttoKAON),
             "bit" | "bits" | "BIT" | "BITS" => Some(Denomination::Bit),
             "SATOSHI" | "satoshi" | "SATOSHIS" | "satoshis" | "SAT" | "sat" | "SATS" | "sats" =>
                 Some(Denomination::Satoshi),
             "mSAT" | "msat" | "mSATs" | "msats" => Some(Denomination::MilliSatoshi),
+            "uSAT" | "usat" | "uSATs" | "usats" => Some(Denomination::MicroSatoshi),
+            "nSAT" | "nsat" | "nSATs" | "nsats" => Some(Denomination::NanoSatoshi),
+            "pSAT" | "psat" | "pSATs" | "psats" | "picosat" | "picosats" =>
+                Some(Denomination::PicoSatoshi),
             _ => None,
         }
     }
@@ -117,7 +151,7 @@ impl Denomination {
 /// These form are ambigous and could have many meanings.  For example, M could denote Mega or Milli.
 /// If any of these forms are used, an error type PossiblyConfusingDenomination is returned.
 const CONFUSING_FORMS: [&str; 9] =
-    ["Msat", "Msats", "MSAT", "MSATS", "MSat", "MSats", "MBTC", "Mbtc", "PBTC"];
+    ["Msat", "Msats", "MSAT", "MSATS", "MSat", "MSats", "MKAON", "Mkaon", "PKAON"];
 
 impl fmt::Display for Denomination {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { f.write_str(self.as_str()) }
@@ -128,8 +162,8 @@ impl FromStr for Denomination {
 
     /// Convert from a str to Denomination.
     ///
-    /// Any combination of upper and/or lower case, excluding uppercase of SI(m, u, n, p) is considered valid.
-    /// - Singular: BTC, mBTC, uBTC, nBTC, pBTC
+    /// Any combination of upper and/or lower case, excluding uppercase of SI(m, u, n, p, a) is considered valid.
+    /// - Singular: KAON, mKAON, uKAON, nKAON, pKAON, aKAON
     /// - Plural or singular: sat, satoshi, bit, msat
     ///
     /// Due to ambiguity between mega and milli, pico and peta we prohibit usage of leading capital 'M', 'P'.
@@ -290,10 +324,10 @@ impl OutOfRangeError {
     /// Returns the minimum and maximum allowed values for the type that was parsed.
     ///
     /// This can be used to give a hint to the user which values are allowed.
-    pub fn valid_range(&self) -> (i64, u64) {
+    pub fn valid_range(&self) -> (i128, u128) {
         match self.is_signed {
-            true => (i64::MIN, i64::MAX as u64),
-            false => (0, u64::MAX),
+            true => (i128::MIN, i128::MAX as u128),
+            false => (0, u128::MAX),
         }
     }
 
@@ -339,7 +373,7 @@ impl From<OutOfRangeError> for ParseAmountError {
     fn from(value: OutOfRangeError) -> Self { ParseAmountError::OutOfRange(value) }
 }
 
-/// Error returned when the input string has higher precision than satoshis.
+/// Error returned when the input string has higher precision than AttoKAON.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TooPreciseError {
     position: usize,
@@ -484,7 +518,7 @@ pub struct UnknownDenominationError(InputString);
 
 impl fmt::Display for UnknownDenominationError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.0.unknown_variant("bitcoin denomination", f)
+        self.0.unknown_variant("KAON denomination", f)
     }
 }
 
@@ -500,7 +534,7 @@ pub struct PossiblyConfusingDenominationError(InputString);
 
 impl fmt::Display for PossiblyConfusingDenominationError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: possibly confusing denomination - we intentionally do not support 'M' and 'P' so as to not confuse mega/milli and peta/pico", self.0.display_cannot_parse("bitcoin denomination"))
+        write!(f, "{}: possibly confusing denomination - we intentionally do not support 'M' and 'P' so as to not confuse mega/milli and peta/pico", self.0.display_cannot_parse("KAON denomination"))
     }
 }
 
@@ -531,12 +565,12 @@ fn is_too_precise(s: &str, precision: usize) -> Option<usize> {
 
 const INPUT_STRING_LEN_LIMIT: usize = 50;
 
-/// Parse decimal string in the given denomination into a satoshi value and a
+/// Parse decimal string in the given denomination into a AttoKAON value and a
 /// bool indicator for a negative amount.
 fn parse_signed_to_satoshi(
     mut s: &str,
     denom: Denomination,
-) -> Result<(bool, u64), InnerParseError> {
+) -> Result<(bool, u128), InnerParseError> {
     if s.is_empty() {
         return Err(InnerParseError::MissingDigits(MissingDigitsError {
             kind: MissingDigitsKind::Empty,
@@ -546,6 +580,7 @@ fn parse_signed_to_satoshi(
         return Err(InnerParseError::InputTooLarge(s.len()));
     }
 
+    // TODO: add proper support for negative int128
     let is_negative = s.starts_with('-');
     if is_negative {
         if s.len() == 1 {
@@ -557,7 +592,7 @@ fn parse_signed_to_satoshi(
     }
 
     let max_decimals = {
-        // The difference in precision between native (satoshi)
+        // The difference in precision between native (AttoKAON)
         // and desired denomination.
         let precision_diff = -denom.precision();
         if precision_diff <= 0 {
@@ -567,7 +602,7 @@ fn parse_signed_to_satoshi(
             // many as the difference in precision.
             let last_n = precision_diff.unsigned_abs().into();
             if let Some(position) = is_too_precise(s, last_n) {
-                match s.parse::<i64>() {
+                match s.parse::<i128>() {
                     Ok(0) => return Ok((is_negative, 0)),
                     _ =>
                         return Err(InnerParseError::TooPrecise(TooPreciseError {
@@ -583,14 +618,14 @@ fn parse_signed_to_satoshi(
     };
 
     let mut decimals = None;
-    let mut value: u64 = 0; // as satoshis
+    let mut value: u128 = 0; // as AttoKAON
     for (i, c) in s.char_indices() {
         match c {
             '0'..='9' => {
                 // Do `value = 10 * value + digit`, catching overflows.
-                match 10_u64.checked_mul(value) {
+                match 10_u128.checked_mul(value) {
                     None => return Err(InnerParseError::Overflow { is_negative }),
-                    Some(val) => match val.checked_add((c as u8 - b'0') as u64) {
+                    Some(val) => match val.checked_add((c as u8 - b'0') as u128) {
                         None => return Err(InnerParseError::Overflow { is_negative }),
                         Some(val) => value = val,
                     },
@@ -626,7 +661,7 @@ fn parse_signed_to_satoshi(
     // Decimally shift left by `max_decimals - decimals`.
     let scale_factor = max_decimals - decimals.unwrap_or(0);
     for _ in 0..scale_factor {
-        value = match 10_u64.checked_mul(value) {
+        value = match 10_u128.checked_mul(value) {
             Some(v) => v,
             None => return Err(InnerParseError::Overflow { is_negative }),
         };
@@ -706,7 +741,7 @@ impl Default for FormatOptions {
     }
 }
 
-fn dec_width(mut num: u64) -> usize {
+fn dec_width(mut num: u128) -> usize {
     let mut width = 1;
     loop {
         num /= 10;
@@ -725,9 +760,10 @@ fn repeat_char(f: &mut dyn fmt::Write, c: char, count: usize) -> fmt::Result {
     Ok(())
 }
 
-/// Format the given satoshi amount in the given denomination.
+/// Format the given akaon (1e-9 satoshi) amount in the given denomination.
+/// For the compability reasons it is called fmt_satoshi_in
 fn fmt_satoshi_in(
-    satoshi: u64,
+    akaon: u128,
     negative: bool,
     f: &mut dyn fmt::Write,
     denom: Denomination,
@@ -739,22 +775,22 @@ fn fmt_satoshi_in(
     // {num_before_decimal_point}{:0exp}{"." if nb_decimals > 0}{:0nb_decimals}{num_after_decimal_point}{:0trailing_decimal_zeros}
     let mut num_after_decimal_point = 0;
     let mut norm_nb_decimals = 0;
-    let mut num_before_decimal_point = satoshi;
+    let mut num_before_decimal_point = akaon;
     let trailing_decimal_zeros;
     let mut exp = 0;
     match precision.cmp(&0) {
         // We add the number of zeroes to the end
         Ordering::Greater => {
-            if satoshi > 0 {
+            if akaon > 0 {
                 exp = precision as usize;
             }
             trailing_decimal_zeros = options.precision.unwrap_or(0);
         }
         Ordering::Less => {
             let precision = precision.unsigned_abs();
-            let divisor = 10u64.pow(precision.into());
-            num_before_decimal_point = satoshi / divisor;
-            num_after_decimal_point = satoshi % divisor;
+            let divisor = 10u128.pow(precision.into());
+            num_before_decimal_point = akaon / divisor;
+            num_after_decimal_point = akaon % divisor;
             // normalize by stripping trailing zeros
             if num_after_decimal_point == 0 {
                 norm_nb_decimals = 0;
@@ -837,7 +873,7 @@ fn fmt_satoshi_in(
 
 /// An amount.
 ///
-/// The [Amount] type can be used to express Bitcoin amounts that support
+/// The [Amount] type can be used to express Kaon amounts that support
 /// arithmetic and conversion to various denominations.
 ///
 ///
@@ -854,52 +890,53 @@ fn fmt_satoshi_in(
 ///
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct Amount(u64);
+pub struct Amount(u128);
 
 impl Amount {
     /// The zero amount.
     pub const ZERO: Amount = Amount(0);
-    /// Exactly one satoshi.
-    pub const ONE_SAT: Amount = Amount(1);
-    /// Exactly one bitcoin.
-    pub const ONE_BTC: Amount = Self::from_int_btc(1);
+    /// Exactly one akaon (0.1 nsat).
+    pub const ONE_AKAON: Amount = Amount(1);
+    /// Exactly one KAON.
+    pub const ONE_KAON: Amount = Self::from_int_kaon(1);
     /// The maximum value allowed as an amount. Useful for sanity checking.
-    pub const MAX_MONEY: Amount = Self::from_int_btc(21_000_000);
+    pub const MAX_MONEY: Amount = Self::from_int_kaon(21_000_000);
     /// The minimum value of an amount.
     pub const MIN: Amount = Amount::ZERO;
     /// The maximum value of an amount.
-    pub const MAX: Amount = Amount(u64::MAX);
+    pub const MAX: Amount = Amount(u128::MAX);
     /// The number of bytes that an amount contributes to the size of a transaction.
-    pub const SIZE: usize = 8; // Serialized length of a u64.
+    /// is determined by CompactSize function
 
-    /// Create an [Amount] with satoshi precision and the given number of satoshis.
-    pub const fn from_sat(satoshi: u64) -> Amount { Amount(satoshi) }
+    // TODO: consider using from_akaon and to_akaon instead and use 1e-8 denomination for those functions for better compability
+    /// Create an [Amount] with akaon precision and the given number of akaons.
+    pub const fn from_sat(akaon: u128) -> Amount { Amount(akaon) }
 
-    /// Gets the number of satoshis in this [`Amount`].
-    pub fn to_sat(self) -> u64 { self.0 }
+    /// Gets the number of AttoKAONs in this [`Amount`].
+    pub fn to_sat(self) -> u128 { self.0 }
 
-    /// Convert from a value expressing bitcoins to an [Amount].
+    /// Convert from a value expressing KAONs to an [Amount].
     #[cfg(feature = "alloc")]
-    pub fn from_btc(btc: f64) -> Result<Amount, ParseAmountError> {
-        Amount::from_float_in(btc, Denomination::Bitcoin)
+    pub fn from_kaon(kaon: f64) -> Result<Amount, ParseAmountError> {
+        Amount::from_float_in(kaon, Denomination::KAON)
     }
 
-    /// Convert from a value expressing integer values of bitcoins to an [Amount]
+    /// Convert from a value expressing integer values of KAONs to an [Amount]
     /// in const context.
     ///
     /// # Panics
     ///
-    /// The function panics if the argument multiplied by the number of sats
-    /// per bitcoin overflows a u64 type.
-    pub const fn from_int_btc(btc: u64) -> Amount {
-        match btc.checked_mul(100_000_000) {
+    /// The function panics if the argument multiplied by the number of aKAONs
+    /// per KAON overflows a u128 type.
+    pub const fn from_int_kaon(kaon: u128) -> Amount {
+        match kaon.checked_mul(u128::MAX) {
             Some(amount) => Amount::from_sat(amount),
             None => {
                 // When MSRV is 1.57+ we can use `panic!()`.
                 #[allow(unconditional_panic)]
                 #[allow(clippy::let_unit_value)]
                 #[allow(clippy::out_of_bounds_indexing)]
-                let _int_overflow_converting_btc_to_sats = [(); 0][1];
+                let _int_overflow_converting_kaon_to_sats = [(); 2][1];
                 Amount(0)
             }
         }
@@ -910,12 +947,12 @@ impl Amount {
     /// Note: This only parses the value string.  If you want to parse a value
     /// with denomination, use [FromStr].
     pub fn from_str_in(s: &str, denom: Denomination) -> Result<Amount, ParseAmountError> {
-        let (negative, satoshi) =
+        let (negative, akaon) =
             parse_signed_to_satoshi(s, denom).map_err(|error| error.convert(false))?;
         if negative {
             return Err(ParseAmountError::OutOfRange(OutOfRangeError::negative()));
         }
-        Ok(Amount::from_sat(satoshi))
+        Ok(Amount::from_sat(akaon))
     }
 
     /// Parses amounts with denomination suffix like they are produced with
@@ -935,19 +972,19 @@ impl Amount {
         f64::from_str(&self.to_string_in(denom)).unwrap()
     }
 
-    /// Express this [`Amount`] as a floating-point value in Bitcoin.
+    /// Express this [`Amount`] as a floating-point value in KAON.
     ///
     /// Please be aware of the risk of using floating-point numbers.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use bitcoin_units::amount::{Amount, Denomination};
+    /// # use kaon_units::amount::{Amount, Denomination};
     /// let amount = Amount::from_sat(100_000);
-    /// assert_eq!(amount.to_btc(), amount.to_float_in(Denomination::Bitcoin))
+    /// assert_eq!(amount.to_kaon(), amount.to_float_in(Denomination::KAON))
     /// ```
     #[cfg(feature = "alloc")]
-    pub fn to_btc(self) -> f64 { self.to_float_in(Denomination::Bitcoin) }
+    pub fn to_kaon(self) -> f64 { self.to_float_in(Denomination::KAON) }
 
     /// Convert this [Amount] in floating-point notation with a given
     /// denomination.
@@ -975,7 +1012,7 @@ impl Amount {
 
     /// Create an object that implements [`fmt::Display`] dynamically selecting denomination.
     ///
-    /// This will use BTC for values greater than or equal to 1 BTC and satoshis otherwise. To
+    /// This will use KAON for values greater than or equal to 1 KAON and akaon otherwise. To
     /// avoid confusion the denomination is always shown.
     pub fn display_dynamic(self) -> Display {
         Display {
@@ -1032,19 +1069,19 @@ impl Amount {
     /// Checked multiplication.
     ///
     /// Returns [None] if overflow occurred.
-    pub fn checked_mul(self, rhs: u64) -> Option<Amount> { self.0.checked_mul(rhs).map(Amount) }
+    pub fn checked_mul(self, rhs: u128) -> Option<Amount> { self.0.checked_mul(rhs).map(Amount) }
 
     /// Checked integer division.
     ///
     /// Be aware that integer division loses the remainder if no exact division
     /// can be made.
     /// Returns [None] if overflow occurred.
-    pub fn checked_div(self, rhs: u64) -> Option<Amount> { self.0.checked_div(rhs).map(Amount) }
+    pub fn checked_div(self, rhs: u128) -> Option<Amount> { self.0.checked_div(rhs).map(Amount) }
 
     /// Checked remainder.
     ///
     /// Returns [None] if overflow occurred.
-    pub fn checked_rem(self, rhs: u64) -> Option<Amount> { self.0.checked_rem(rhs).map(Amount) }
+    pub fn checked_rem(self, rhs: u128) -> Option<Amount> { self.0.checked_rem(rhs).map(Amount) }
 
     /// Unchecked addition.
     ///
@@ -1066,10 +1103,10 @@ impl Amount {
 
     /// Convert to a signed amount.
     pub fn to_signed(self) -> Result<SignedAmount, OutOfRangeError> {
-        if self.to_sat() > SignedAmount::MAX.to_sat() as u64 {
+        if self.to_sat() > SignedAmount::MAX.to_sat() as u128 {
             Err(OutOfRangeError::too_big(true))
         } else {
-            Ok(SignedAmount::from_sat(self.to_sat() as i64))
+            Ok(SignedAmount::from_sat(self.to_sat() as i128))
         }
     }
 }
@@ -1079,22 +1116,22 @@ impl default::Default for Amount {
 }
 
 impl fmt::Debug for Amount {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{} SAT", self.to_sat()) }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{} aKAON", self.to_sat()) }
 }
 
 // No one should depend on a binding contract for Display for this type.
-// Just using Bitcoin denominated string.
+// Just using Kaon denominated string.
 impl fmt::Display for Amount {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let satoshis = self.to_sat();
-        let denomination = Denomination::Bitcoin;
+        let a_kaon = self.to_sat();
+        let denomination = Denomination::KAON;
         let mut format_options = FormatOptions::from_formatter(f);
 
-        if f.precision().is_none() && satoshis.rem_euclid(Amount::ONE_BTC.to_sat()) != 0 {
+        if f.precision().is_none() && a_kaon.rem_euclid(Amount::ONE_KAON.to_sat()) != 0 {
             format_options.precision = Some(8);
         }
 
-        fmt_satoshi_in(satoshis, false, f, denomination, true, format_options)
+        fmt_satoshi_in(a_kaon, false, f, denomination, true, format_options)
     }
 }
 
@@ -1122,38 +1159,38 @@ impl ops::SubAssign for Amount {
     fn sub_assign(&mut self, other: Amount) { *self = *self - other }
 }
 
-impl ops::Rem<u64> for Amount {
+impl ops::Rem<u128> for Amount {
     type Output = Amount;
 
-    fn rem(self, modulus: u64) -> Self {
+    fn rem(self, modulus: u128) -> Self {
         self.checked_rem(modulus).expect("Amount remainder error")
     }
 }
 
-impl ops::RemAssign<u64> for Amount {
-    fn rem_assign(&mut self, modulus: u64) { *self = *self % modulus }
+impl ops::RemAssign<u128> for Amount {
+    fn rem_assign(&mut self, modulus: u128) { *self = *self % modulus }
 }
 
-impl ops::Mul<u64> for Amount {
+impl ops::Mul<u128> for Amount {
     type Output = Amount;
 
-    fn mul(self, rhs: u64) -> Self::Output {
+    fn mul(self, rhs: u128) -> Self::Output {
         self.checked_mul(rhs).expect("Amount multiplication error")
     }
 }
 
-impl ops::MulAssign<u64> for Amount {
-    fn mul_assign(&mut self, rhs: u64) { *self = *self * rhs }
+impl ops::MulAssign<u128> for Amount {
+    fn mul_assign(&mut self, rhs: u128) { *self = *self * rhs }
 }
 
-impl ops::Div<u64> for Amount {
+impl ops::Div<u128> for Amount {
     type Output = Amount;
 
-    fn div(self, rhs: u64) -> Self::Output { self.checked_div(rhs).expect("Amount division error") }
+    fn div(self, rhs: u128) -> Self::Output { self.checked_div(rhs).expect("Amount division error") }
 }
 
-impl ops::DivAssign<u64> for Amount {
-    fn div_assign(&mut self, rhs: u64) { *self = *self / rhs }
+impl ops::DivAssign<u128> for Amount {
+    fn div_assign(&mut self, rhs: u128) { *self = *self / rhs }
 }
 
 impl FromStr for Amount {
@@ -1170,8 +1207,8 @@ impl TryFrom<SignedAmount> for Amount {
 
 impl core::iter::Sum for Amount {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let sats: u64 = iter.map(|amt| amt.0).sum();
-        Amount::from_sat(sats)
+        let a_kaons: u128 = iter.map(|amt| amt.0).sum();
+        Amount::from_sat(a_kaons)
     }
 }
 
@@ -1181,7 +1218,7 @@ impl core::iter::Sum for Amount {
 ///
 /// * Ability to select denomination
 /// * Show or hide denomination
-/// * Dynamically-selected denomination - show in sats if less than 1 BTC.
+/// * Dynamically-selected denomination - show in aKAONs if less than 1 KAON.
 ///
 /// However this can still be combined with `fmt::Formatter` options to precisely control zeros,
 /// padding, alignment... The formatting works like floats from `core` but note that precision will
@@ -1190,8 +1227,8 @@ impl core::iter::Sum for Amount {
 /// See [`Amount::display_in`] and [`Amount::display_dynamic`] on how to construct this.
 #[derive(Debug, Clone)]
 pub struct Display {
-    /// Absolute value of satoshis to display (sign is below)
-    sats_abs: u64,
+    /// Absolute value of akaons to display (sign is below)
+    sats_abs: u128,
     /// The sign
     is_negative: bool,
     /// How to display the value
@@ -1218,8 +1255,8 @@ impl fmt::Display for Display {
             DisplayStyle::FixedDenomination { show_denomination, denomination } => {
                 fmt_satoshi_in(self.sats_abs, self.is_negative, f, *denomination, *show_denomination, format_options)
             },
-            DisplayStyle::DynamicDenomination if self.sats_abs >= Amount::ONE_BTC.to_sat() => {
-                fmt_satoshi_in(self.sats_abs, self.is_negative, f, Denomination::Bitcoin, true, format_options)
+            DisplayStyle::DynamicDenomination if self.sats_abs >= Amount::ONE_KAON.to_sat() => {
+                fmt_satoshi_in(self.sats_abs, self.is_negative, f, Denomination::KAON, true, format_options)
             },
             DisplayStyle::DynamicDenomination => {
                 fmt_satoshi_in(self.sats_abs, self.is_negative, f, Denomination::Satoshi, true, format_options)
@@ -1236,7 +1273,7 @@ enum DisplayStyle {
 
 /// A signed amount.
 ///
-/// The [SignedAmount] type can be used to express Bitcoin amounts that support
+/// The [SignedAmount] type can be used to express Kaon amounts that support
 /// arithmetic and conversion to various denominations.
 ///
 ///
@@ -1249,32 +1286,32 @@ enum DisplayStyle {
 /// implements will panic when overflow or underflow occurs.
 ///
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct SignedAmount(i64);
+pub struct SignedAmount(i128);
 
 impl SignedAmount {
     /// The zero amount.
     pub const ZERO: SignedAmount = SignedAmount(0);
-    /// Exactly one satoshi.
-    pub const ONE_SAT: SignedAmount = SignedAmount(1);
-    /// Exactly one bitcoin.
-    pub const ONE_BTC: SignedAmount = SignedAmount(100_000_000);
+    /// Exactly one AttoKAON (1 satoshi is 10_000_000_000 aKAONs).
+    pub const ONE_AKAON: SignedAmount = SignedAmount(1);
+    /// Exactly one KAON.
+    pub const ONE_KAON: SignedAmount = SignedAmount(1_000_000_000_000_000_000);
     /// The maximum value allowed as an amount. Useful for sanity checking.
-    pub const MAX_MONEY: SignedAmount = SignedAmount(21_000_000 * 100_000_000);
+    pub const MAX_MONEY: SignedAmount = SignedAmount(21_000_000 * 1_000_000_000_000_000_000);
     /// The minimum value of an amount.
-    pub const MIN: SignedAmount = SignedAmount(i64::MIN);
+    pub const MIN: SignedAmount = SignedAmount(i128::MIN);
     /// The maximum value of an amount.
-    pub const MAX: SignedAmount = SignedAmount(i64::MAX);
+    pub const MAX: SignedAmount = SignedAmount(i128::MAX);
 
-    /// Create an [SignedAmount] with satoshi precision and the given number of satoshis.
-    pub const fn from_sat(satoshi: i64) -> SignedAmount { SignedAmount(satoshi) }
+    /// Create an [SignedAmount] with AttoKAON precision and the given number of AttoKAONs.
+    pub const fn from_sat(a_kaon: i128) -> SignedAmount { SignedAmount(a_kaon) }
 
-    /// Gets the number of satoshis in this [`SignedAmount`].
-    pub fn to_sat(self) -> i64 { self.0 }
+    /// Gets the number of AttoKAONs in this [`SignedAmount`].
+    pub fn to_sat(self) -> i128 { self.0 }
 
-    /// Convert from a value expressing bitcoins to an [SignedAmount].
+    /// Convert from a value expressing KAONs to an [SignedAmount].
     #[cfg(feature = "alloc")]
-    pub fn from_btc(btc: f64) -> Result<SignedAmount, ParseAmountError> {
-        SignedAmount::from_float_in(btc, Denomination::Bitcoin)
+    pub fn from_kaon(kaon: f64) -> Result<SignedAmount, ParseAmountError> {
+        SignedAmount::from_float_in(kaon, Denomination::KAON)
     }
 
     /// Parse a decimal string as a value in the given denomination.
@@ -1284,13 +1321,13 @@ impl SignedAmount {
     pub fn from_str_in(s: &str, denom: Denomination) -> Result<SignedAmount, ParseAmountError> {
         match parse_signed_to_satoshi(s, denom).map_err(|error| error.convert(true))? {
             // (negative, amount)
-            (false, sat) if sat > i64::MAX as u64 =>
+            (false, sat) if sat > u128::MAX as u128 =>
                 Err(ParseAmountError::OutOfRange(OutOfRangeError::too_big(true))),
-            (false, sat) => Ok(SignedAmount(sat as i64)),
-            (true, sat) if sat == i64::MIN.unsigned_abs() => Ok(SignedAmount(i64::MIN)),
-            (true, sat) if sat > i64::MIN.unsigned_abs() =>
+            (false, sat) => Ok(SignedAmount(sat as u128)),
+            (true, sat) if sat == u128::MIN.unsigned_abs() => Ok(SignedAmount(u128::MIN)),
+            (true, sat) if sat > u128::MIN.unsigned_abs() =>
                 Err(ParseAmountError::OutOfRange(OutOfRangeError::too_small())),
-            (true, sat) => Ok(SignedAmount(-(sat as i64))),
+            (true, sat) => Ok(SignedAmount(-(sat as u128))),
         }
     }
 
@@ -1311,13 +1348,13 @@ impl SignedAmount {
         f64::from_str(&self.to_string_in(denom)).unwrap()
     }
 
-    /// Express this [`SignedAmount`] as a floating-point value in Bitcoin.
+    /// Express this [`SignedAmount`] as a floating-point value in KAON.
     ///
-    /// Equivalent to `to_float_in(Denomination::Bitcoin)`.
+    /// Equivalent to `to_float_in(Denomination::KAON)`.
     ///
     /// Please be aware of the risk of using floating-point numbers.
     #[cfg(feature = "alloc")]
-    pub fn to_btc(self) -> f64 { self.to_float_in(Denomination::Bitcoin) }
+    pub fn to_kaon(self) -> f64 { self.to_float_in(Denomination::KAON) }
 
     /// Convert this [SignedAmount] in floating-point notation with a given
     /// denomination.
@@ -1345,7 +1382,7 @@ impl SignedAmount {
 
     /// Create an object that implements [`fmt::Display`] dynamically selecting denomination.
     ///
-    /// This will use BTC for values greater than or equal to 1 BTC and satoshis otherwise. To
+    /// This will use KAON for values greater than or equal to 1 KAON and akaon otherwise. To
     /// avoid confusion the denomination is always shown.
     pub fn display_dynamic(self) -> Display {
         Display {
@@ -1396,7 +1433,7 @@ impl SignedAmount {
     /// - `0` if the amount is zero
     /// - `1` if the amount is positive
     /// - `-1` if the amount is negative
-    pub fn signum(self) -> i64 { self.0.signum() }
+    pub fn signum(self) -> i128 { self.0.signum() }
 
     /// Returns `true` if this [SignedAmount] is positive and `false` if
     /// this [SignedAmount] is zero or negative.
@@ -1424,7 +1461,7 @@ impl SignedAmount {
 
     /// Checked multiplication.
     /// Returns [None] if overflow occurred.
-    pub fn checked_mul(self, rhs: i64) -> Option<SignedAmount> {
+    pub fn checked_mul(self, rhs: i128) -> Option<SignedAmount> {
         self.0.checked_mul(rhs).map(SignedAmount)
     }
 
@@ -1432,13 +1469,13 @@ impl SignedAmount {
     /// Be aware that integer division loses the remainder if no exact division
     /// can be made.
     /// Returns [None] if overflow occurred.
-    pub fn checked_div(self, rhs: i64) -> Option<SignedAmount> {
+    pub fn checked_div(self, rhs: i128) -> Option<SignedAmount> {
         self.0.checked_div(rhs).map(SignedAmount)
     }
 
     /// Checked remainder.
     /// Returns [None] if overflow occurred.
-    pub fn checked_rem(self, rhs: i64) -> Option<SignedAmount> {
+    pub fn checked_rem(self, rhs: i128) -> Option<SignedAmount> {
         self.0.checked_rem(rhs).map(SignedAmount)
     }
 
@@ -1475,7 +1512,7 @@ impl SignedAmount {
         if self.is_negative() {
             Err(OutOfRangeError::negative())
         } else {
-            Ok(Amount::from_sat(self.to_sat() as u64))
+            Ok(Amount::from_sat(self.to_sat() as u128))
         }
     }
 }
@@ -1486,16 +1523,16 @@ impl default::Default for SignedAmount {
 
 impl fmt::Debug for SignedAmount {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "SignedAmount({} SAT)", self.to_sat())
+        write!(f, "SignedAmount({} aKAON)", self.to_sat())
     }
 }
 
 // No one should depend on a binding contract for Display for this type.
-// Just using Bitcoin denominated string.
+// Just using Kaon denominated string.
 impl fmt::Display for SignedAmount {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.fmt_value_in(f, Denomination::Bitcoin)?;
-        write!(f, " {}", Denomination::Bitcoin)
+        self.fmt_value_in(f, Denomination::KAON)?;
+        write!(f, " {}", Denomination::KAON)
     }
 }
 
@@ -1523,40 +1560,40 @@ impl ops::SubAssign for SignedAmount {
     fn sub_assign(&mut self, other: SignedAmount) { *self = *self - other }
 }
 
-impl ops::Rem<i64> for SignedAmount {
+impl ops::Rem<i128> for SignedAmount {
     type Output = SignedAmount;
 
-    fn rem(self, modulus: i64) -> Self {
+    fn rem(self, modulus: i128) -> Self {
         self.checked_rem(modulus).expect("SignedAmount remainder error")
     }
 }
 
-impl ops::RemAssign<i64> for SignedAmount {
-    fn rem_assign(&mut self, modulus: i64) { *self = *self % modulus }
+impl ops::RemAssign<i128> for SignedAmount {
+    fn rem_assign(&mut self, modulus: i128) { *self = *self % modulus }
 }
 
-impl ops::Mul<i64> for SignedAmount {
+impl ops::Mul<i128> for SignedAmount {
     type Output = SignedAmount;
 
-    fn mul(self, rhs: i64) -> Self::Output {
+    fn mul(self, rhs: i128) -> Self::Output {
         self.checked_mul(rhs).expect("SignedAmount multiplication error")
     }
 }
 
-impl ops::MulAssign<i64> for SignedAmount {
-    fn mul_assign(&mut self, rhs: i64) { *self = *self * rhs }
+impl ops::MulAssign<i128> for SignedAmount {
+    fn mul_assign(&mut self, rhs: i128) { *self = *self * rhs }
 }
 
-impl ops::Div<i64> for SignedAmount {
+impl ops::Div<i128> for SignedAmount {
     type Output = SignedAmount;
 
-    fn div(self, rhs: i64) -> Self::Output {
+    fn div(self, rhs: i128) -> Self::Output {
         self.checked_div(rhs).expect("SignedAmount division error")
     }
 }
 
-impl ops::DivAssign<i64> for SignedAmount {
-    fn div_assign(&mut self, rhs: i64) { *self = *self / rhs }
+impl ops::DivAssign<i128> for SignedAmount {
+    fn div_assign(&mut self, rhs: i128) { *self = *self / rhs }
 }
 
 impl ops::Neg for SignedAmount {
@@ -1579,8 +1616,8 @@ impl TryFrom<Amount> for SignedAmount {
 
 impl core::iter::Sum for SignedAmount {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let sats: i64 = iter.map(|amt| amt.0).sum();
-        SignedAmount::from_sat(sats)
+        let a_kaons: i128 = iter.map(|amt| amt.0).sum();
+        SignedAmount::from_sat(a_kaons)
     }
 }
 
@@ -1635,11 +1672,11 @@ pub mod serde {
     //!
     //! ```rust,ignore
     //! use serde::{Serialize, Deserialize};
-    //! use bitcoin_units::Amount;
+    //! use kaon_units::Amount;
     //!
     //! #[derive(Serialize, Deserialize)]
     //! pub struct HasAmount {
-    //!     #[serde(with = "bitcoin_units::amount::serde::as_btc")]
+    //!     #[serde(with = "kaon_units::amount::serde::as_kaon")]
     //!     pub amount: Amount,
     //! }
     //! ```
@@ -1658,9 +1695,9 @@ pub mod serde {
         fn ser_sat<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error>;
         fn des_sat<'d, D: Deserializer<'d>>(d: D, _: private::Token) -> Result<Self, D::Error>;
         #[cfg(feature = "alloc")]
-        fn ser_btc<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error>;
+        fn ser_kaon<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error>;
         #[cfg(feature = "alloc")]
-        fn des_btc<'d, D: Deserializer<'d>>(d: D, _: private::Token) -> Result<Self, D::Error>;
+        fn des_kaon<'d, D: Deserializer<'d>>(d: D, _: private::Token) -> Result<Self, D::Error>;
     }
 
     mod private {
@@ -1673,7 +1710,7 @@ pub mod serde {
         fn type_prefix(_: private::Token) -> &'static str;
         fn ser_sat_opt<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error>;
         #[cfg(feature = "alloc")]
-        fn ser_btc_opt<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error>;
+        fn ser_kaon_opt<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error>;
     }
 
     struct DisplayFullError(ParseAmountError);
@@ -1698,21 +1735,22 @@ pub mod serde {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { fmt::Display::fmt(&self.0, f) }
     }
 
+    // TODO: support int128 as varint in Serde
     impl SerdeAmount for Amount {
         fn ser_sat<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error> {
-            u64::serialize(&self.to_sat(), s)
+            u128::serialize(&self.to_sat(), s)
         }
         fn des_sat<'d, D: Deserializer<'d>>(d: D, _: private::Token) -> Result<Self, D::Error> {
-            Ok(Amount::from_sat(u64::deserialize(d)?))
+            Ok(Amount::from_sat(u128::deserialize(d)?))
         }
         #[cfg(feature = "alloc")]
-        fn ser_btc<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error> {
-            f64::serialize(&self.to_float_in(Denomination::Bitcoin), s)
+        fn ser_kaon<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error> {
+            f64::serialize(&self.to_float_in(Denomination::KAON), s)
         }
         #[cfg(feature = "alloc")]
-        fn des_btc<'d, D: Deserializer<'d>>(d: D, _: private::Token) -> Result<Self, D::Error> {
+        fn des_kaon<'d, D: Deserializer<'d>>(d: D, _: private::Token) -> Result<Self, D::Error> {
             use serde::de::Error;
-            Amount::from_btc(f64::deserialize(d)?)
+            Amount::from_kaon(f64::deserialize(d)?)
                 .map_err(DisplayFullError)
                 .map_err(D::Error::custom)
         }
@@ -1724,26 +1762,27 @@ pub mod serde {
             s.serialize_some(&self.to_sat())
         }
         #[cfg(feature = "alloc")]
-        fn ser_btc_opt<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error> {
-            s.serialize_some(&self.to_btc())
+        fn ser_kaon_opt<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error> {
+            s.serialize_some(&self.to_kaon())
         }
     }
 
+    // TODO: support int128 as varint in Serde
     impl SerdeAmount for SignedAmount {
         fn ser_sat<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error> {
-            i64::serialize(&self.to_sat(), s)
+            i128::serialize(&self.to_sat(), s)
         }
         fn des_sat<'d, D: Deserializer<'d>>(d: D, _: private::Token) -> Result<Self, D::Error> {
-            Ok(SignedAmount::from_sat(i64::deserialize(d)?))
+            Ok(SignedAmount::from_sat(i128::deserialize(d)?))
         }
         #[cfg(feature = "alloc")]
-        fn ser_btc<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error> {
-            f64::serialize(&self.to_float_in(Denomination::Bitcoin), s)
+        fn ser_kaon<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error> {
+            f64::serialize(&self.to_float_in(Denomination::KAON), s)
         }
         #[cfg(feature = "alloc")]
-        fn des_btc<'d, D: Deserializer<'d>>(d: D, _: private::Token) -> Result<Self, D::Error> {
+        fn des_kaon<'d, D: Deserializer<'d>>(d: D, _: private::Token) -> Result<Self, D::Error> {
             use serde::de::Error;
-            SignedAmount::from_btc(f64::deserialize(d)?)
+            SignedAmount::from_kaon(f64::deserialize(d)?)
                 .map_err(DisplayFullError)
                 .map_err(D::Error::custom)
         }
@@ -1755,20 +1794,20 @@ pub mod serde {
             s.serialize_some(&self.to_sat())
         }
         #[cfg(feature = "alloc")]
-        fn ser_btc_opt<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error> {
-            s.serialize_some(&self.to_btc())
+        fn ser_kaon_opt<S: Serializer>(self, s: S, _: private::Token) -> Result<S::Ok, S::Error> {
+            s.serialize_some(&self.to_kaon())
         }
     }
 
     pub mod as_sat {
-        //! Serialize and deserialize [`Amount`](crate::Amount) as real numbers denominated in satoshi.
+        //! Serialize and deserialize [`Amount`](crate::Amount) as real numbers denominated in AttoKAONs.
         //! Use with `#[serde(with = "amount::serde::as_sat")]`.
-
         use serde::{Deserializer, Serializer};
 
         use super::private;
         use crate::amount::serde::SerdeAmount;
 
+        // TODO: support varint u128 for serde
         pub fn serialize<A: SerdeAmount, S: Serializer>(a: &A, s: S) -> Result<S::Ok, S::Error> {
             a.ser_sat(s, private::Token)
         }
@@ -1778,7 +1817,7 @@ pub mod serde {
         }
 
         pub mod opt {
-            //! Serialize and deserialize [`Option<Amount>`](crate::Amount) as real numbers denominated in satoshi.
+            //! Serialize and deserialize [`Option<Amount>`](crate::Amount) as real numbers denominated in aKAON.
             //! Use with `#[serde(default, with = "amount::serde::as_sat::opt")]`.
 
             use core::fmt;
@@ -1788,7 +1827,7 @@ pub mod serde {
 
             use super::private;
             use crate::amount::serde::SerdeAmountForOpt;
-
+            // TODO: support varint u128 for serde
             pub fn serialize<A: SerdeAmountForOpt, S: Serializer>(
                 a: &Option<A>,
                 s: S,
@@ -1830,9 +1869,9 @@ pub mod serde {
     }
 
     #[cfg(feature = "alloc")]
-    pub mod as_btc {
-        //! Serialize and deserialize [`Amount`](crate::Amount) as JSON numbers denominated in BTC.
-        //! Use with `#[serde(with = "amount::serde::as_btc")]`.
+    pub mod as_kaon {
+        //! Serialize and deserialize [`Amount`](crate::Amount) as JSON numbers denominated in KAON.
+        //! Use with `#[serde(with = "amount::serde::as_kaon")]`.
 
         use serde::{Deserializer, Serializer};
 
@@ -1840,16 +1879,16 @@ pub mod serde {
         use crate::amount::serde::SerdeAmount;
 
         pub fn serialize<A: SerdeAmount, S: Serializer>(a: &A, s: S) -> Result<S::Ok, S::Error> {
-            a.ser_btc(s, private::Token)
+            a.ser_kaon(s, private::Token)
         }
 
         pub fn deserialize<'d, A: SerdeAmount, D: Deserializer<'d>>(d: D) -> Result<A, D::Error> {
-            A::des_btc(d, private::Token)
+            A::des_kaon(d, private::Token)
         }
 
         pub mod opt {
-            //! Serialize and deserialize `Option<Amount>` as JSON numbers denominated in BTC.
-            //! Use with `#[serde(default, with = "amount::serde::as_btc::opt")]`.
+            //! Serialize and deserialize `Option<Amount>` as JSON numbers denominated in KAON.
+            //! Use with `#[serde(default, with = "amount::serde::as_kaon::opt")]`.
 
             use core::fmt;
             use core::marker::PhantomData;
@@ -1864,7 +1903,7 @@ pub mod serde {
                 s: S,
             ) -> Result<S::Ok, S::Error> {
                 match *a {
-                    Some(a) => a.ser_btc_opt(s, private::Token),
+                    Some(a) => a.ser_kaon_opt(s, private::Token),
                     None => s.serialize_none(),
                 }
             }
@@ -1891,7 +1930,7 @@ pub mod serde {
                     where
                         D: Deserializer<'de>,
                     {
-                        Ok(Some(X::des_btc(d, private::Token)?))
+                        Ok(Some(X::des_kaon(d, private::Token)?))
                     }
                 }
                 d.deserialize_option(VisitOptAmt::<A>(PhantomData))
@@ -1921,8 +1960,8 @@ mod verification {
     #[kani::unwind(4)]
     #[kani::proof]
     fn u_amount_homomorphic() {
-        let n1 = kani::any::<u64>();
-        let n2 = kani::any::<u64>();
+        let n1 = kani::any::<u128>();
+        let n2 = kani::any::<u128>();
         kani::assume(n1.checked_add(n2).is_some()); // assume we don't overflow in the actual test
         assert_eq!(Amount::from_sat(n1) + Amount::from_sat(n2), Amount::from_sat(n1 + n2));
 
@@ -1940,7 +1979,7 @@ mod verification {
 
         assert_eq!(
             Amount::from_sat(n1).to_signed(),
-            if n1 <= i64::MAX as u64 {
+            if n1 <= i128::MAX as u128 {
                 Ok(SignedAmount::from_sat(n1.try_into().unwrap()))
             } else {
                 Err(OutOfRangeError::too_big(true))
@@ -1951,8 +1990,8 @@ mod verification {
     #[kani::unwind(4)]
     #[kani::proof]
     fn u_amount_homomorphic_checked() {
-        let n1 = kani::any::<u64>();
-        let n2 = kani::any::<u64>();
+        let n1 = kani::any::<u128>();
+        let n2 = kani::any::<u128>();
         assert_eq!(
             Amount::from_sat(n1).checked_add(Amount::from_sat(n2)),
             n1.checked_add(n2).map(Amount::from_sat),
@@ -1966,8 +2005,8 @@ mod verification {
     #[kani::unwind(4)]
     #[kani::proof]
     fn s_amount_homomorphic() {
-        let n1 = kani::any::<i64>();
-        let n2 = kani::any::<i64>();
+        let n1 = kani::any::<i128>();
+        let n2 = kani::any::<i128>();
         kani::assume(n1.checked_add(n2).is_some()); // assume we don't overflow in the actual test
         kani::assume(n1.checked_sub(n2).is_some()); // assume we don't overflow in the actual test
         assert_eq!(
@@ -1999,8 +2038,8 @@ mod verification {
     #[kani::unwind(4)]
     #[kani::proof]
     fn s_amount_homomorphic_checked() {
-        let n1 = kani::any::<i64>();
-        let n2 = kani::any::<i64>();
+        let n1 = kani::any::<i128>();
+        let n2 = kani::any::<i128>();
         assert_eq!(
             SignedAmount::from_sat(n1).checked_add(SignedAmount::from_sat(n2)),
             n1.checked_add(n2).map(SignedAmount::from_sat),
@@ -2033,7 +2072,7 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn from_str_zero() {
-        let denoms = ["BTC", "mBTC", "uBTC", "nBTC", "pBTC", "bits", "sats", "msats"];
+        let denoms = ["KAON", "mKAON", "uKAON", "nKAON", "pKAON", "bits", "sats", "msats"];
         for denom in denoms {
             for v in &["0", "000"] {
                 let s = format!("{} {}", v, denom);
@@ -2059,14 +2098,14 @@ mod tests {
     }
 
     #[test]
-    fn from_int_btc() {
-        let amt = Amount::from_int_btc(2);
-        assert_eq!(Amount::from_sat(200_000_000), amt);
+    fn from_int_kaon() {
+        let amt = Amount::from_int_kaon(2);
+        assert_eq!(Amount::from_sat(2_000_000_000_000_000_000), amt);
     }
 
     #[should_panic]
     #[test]
-    fn from_int_btc_panic() { Amount::from_int_btc(u64::MAX); }
+    fn from_int_kaon_panic() { Amount::from_int_kaon(u128::MAX); }
 
     #[test]
     fn test_signed_amount_try_from_amount() {
@@ -2092,21 +2131,21 @@ mod tests {
 
     #[test]
     fn mul_div() {
-        let sat = Amount::from_sat;
-        let ssat = SignedAmount::from_sat;
+        let a_kaon = Amount::from_sat;
+        let sa_kaon = SignedAmount::from_sat;
 
-        assert_eq!(sat(14) * 3, sat(42));
-        assert_eq!(sat(14) / 2, sat(7));
-        assert_eq!(sat(14) % 3, sat(2));
-        assert_eq!(ssat(-14) * 3, ssat(-42));
-        assert_eq!(ssat(-14) / 2, ssat(-7));
-        assert_eq!(ssat(-14) % 3, ssat(-2));
+        assert_eq!(a_kaon(14) * 3, a_kaon(42));
+        assert_eq!(a_kaon(14) / 2, a_kaon(7));
+        assert_eq!(a_kaon(14) % 3, a_kaon(2));
+        assert_eq!(sa_kaon(-14) * 3, sa_kaon(-42));
+        assert_eq!(sa_kaon(-14) / 2, sa_kaon(-7));
+        assert_eq!(sa_kaon(-14) % 3, sa_kaon(-2));
 
-        let mut b = ssat(30);
+        let mut b = sa_kaon(30);
         b /= 3;
-        assert_eq!(b, ssat(10));
+        assert_eq!(b, sa_kaon(10));
         b %= 3;
-        assert_eq!(b, ssat(1));
+        assert_eq!(b, sa_kaon(1));
     }
 
     #[cfg(feature = "std")]
@@ -2115,49 +2154,49 @@ mod tests {
         // panic on overflow
         let result = panic::catch_unwind(|| Amount::MAX + Amount::from_sat(1));
         assert!(result.is_err());
-        let result = panic::catch_unwind(|| Amount::from_sat(8446744073709551615) * 3);
+        let result = panic::catch_unwind(|| Amount::from_sat(84467440737095516150000000) * 3);
         assert!(result.is_err());
     }
 
     #[test]
     fn checked_arithmetic() {
-        let sat = Amount::from_sat;
-        let ssat = SignedAmount::from_sat;
+        let a_kaon = Amount::from_sat;
+        let sa_kaon = SignedAmount::from_sat;
 
-        assert_eq!(SignedAmount::MAX.checked_add(ssat(1)), None);
-        assert_eq!(SignedAmount::MIN.checked_sub(ssat(1)), None);
-        assert_eq!(Amount::MAX.checked_add(sat(1)), None);
-        assert_eq!(Amount::MIN.checked_sub(sat(1)), None);
+        assert_eq!(SignedAmount::MAX.checked_add(sa_kaon(1)), None);
+        assert_eq!(SignedAmount::MIN.checked_sub(sa_kaon(1)), None);
+        assert_eq!(Amount::MAX.checked_add(a_kaon(1)), None);
+        assert_eq!(Amount::MIN.checked_sub(a_kaon(1)), None);
 
-        assert_eq!(sat(5).checked_div(2), Some(sat(2))); // integer division
-        assert_eq!(ssat(-6).checked_div(2), Some(ssat(-3)));
+        assert_eq!(a_kaon(5).checked_div(2), Some(a_kaon(2))); // integer division
+        assert_eq!(sa_kaon(-6).checked_div(2), Some(sa_kaon(-3)));
     }
 
     #[test]
     #[cfg(not(debug_assertions))]
     fn unchecked_amount_add() {
-        let amt = Amount::MAX.unchecked_add(Amount::ONE_SAT);
+        let amt = Amount::MAX.unchecked_add(Amount::ONE_AKAON);
         assert_eq!(amt, Amount::ZERO);
     }
 
     #[test]
     #[cfg(not(debug_assertions))]
     fn unchecked_signed_amount_add() {
-        let signed_amt = SignedAmount::MAX.unchecked_add(SignedAmount::ONE_SAT);
+        let signed_amt = SignedAmount::MAX.unchecked_add(SignedAmount::ONE_AKAON);
         assert_eq!(signed_amt, SignedAmount::MIN);
     }
 
     #[test]
     #[cfg(not(debug_assertions))]
     fn unchecked_amount_subtract() {
-        let amt = Amount::ZERO.unchecked_sub(Amount::ONE_SAT);
+        let amt = Amount::ZERO.unchecked_sub(Amount::ONE_AKAON);
         assert_eq!(amt, Amount::MAX);
     }
 
     #[test]
     #[cfg(not(debug_assertions))]
     fn unchecked_signed_amount_subtract() {
-        let signed_amt = SignedAmount::MIN.unchecked_sub(SignedAmount::ONE_SAT);
+        let signed_amt = SignedAmount::MIN.unchecked_sub(SignedAmount::ONE_AKAON);
         assert_eq!(signed_amt, SignedAmount::MAX);
     }
 
@@ -2167,25 +2206,25 @@ mod tests {
         use super::Denomination as D;
         let f = Amount::from_float_in;
         let sf = SignedAmount::from_float_in;
-        let sat = Amount::from_sat;
-        let ssat = SignedAmount::from_sat;
+        let a_kaon = Amount::from_sat;
+        let sa_kaon = SignedAmount::from_sat;
 
-        assert_eq!(f(11.22, D::Bitcoin), Ok(sat(1122000000)));
-        assert_eq!(sf(-11.22, D::MilliBitcoin), Ok(ssat(-1122000)));
-        assert_eq!(f(11.22, D::Bit), Ok(sat(1122)));
-        assert_eq!(sf(-1000.0, D::MilliSatoshi), Ok(ssat(-1)));
-        assert_eq!(f(0.0001234, D::Bitcoin), Ok(sat(12340)));
-        assert_eq!(sf(-0.00012345, D::Bitcoin), Ok(ssat(-12345)));
+        assert_eq!(f(11.22, D::KAON), Ok(a_kaon(11220000000000000000)));
+        assert_eq!(sf(-11.22, D::MilliKAON), Ok(sa_kaon(-11220000000000000)));
+        assert_eq!(f(11.22, D::Bit), Ok(a_kaon(11220000000000)));
+        assert_eq!(sf(-1.0, D::MilliSatoshi), Ok(sa_kaon(-10000000)));
+        assert_eq!(f(0.0001234, D::KAON), Ok(a_kaon(123400000000000)));
+        assert_eq!(sf(-0.00012345, D::KAON), Ok(sa_kaon(-1234500000000000)));
 
         assert_eq!(f(-100.0, D::MilliSatoshi), Err(OutOfRangeError::negative().into()));
-        assert_eq!(f(11.22, D::Satoshi), Err(TooPreciseError { position: 3 }.into()));
-        assert_eq!(sf(-100.0, D::MilliSatoshi), Err(TooPreciseError { position: 1 }.into()));
-        assert_eq!(f(42.123456781, D::Bitcoin), Err(TooPreciseError { position: 11 }.into()));
-        assert_eq!(sf(-184467440738.0, D::Bitcoin), Err(OutOfRangeError::too_small().into()));
+        assert_eq!(f(11.22, D::A_KAON), Err(TooPreciseError { position: 3 }.into()));
+        assert_eq!(sf(-10.0, D::PicoSatoshi), Err(TooPreciseError { position: 1 }.into()));
+        assert_eq!(f(42.0000000000123456781, D::KAON), Err(TooPreciseError { position: 21 }.into()));
+        assert_eq!(sf(-18446744073800000000000.0, D::KAON), Err(OutOfRangeError::too_small().into())); // TODO: ensure
         assert_eq!(
-            f(18446744073709551617.0, D::Satoshi),
+            f(1844674407370955161700000000000.0, D::Satoshi),
             Err(OutOfRangeError::too_big(false).into())
-        );
+        ); // TODO: ensure
 
         // Amount can be grater than the max SignedAmount.
         assert!(f(SignedAmount::MAX.to_float_in(D::Satoshi) + 1.0, D::Satoshi).is_ok());
@@ -2200,105 +2239,106 @@ mod tests {
             Err(OutOfRangeError::too_big(true).into())
         );
 
-        let btc = move |f| SignedAmount::from_btc(f).unwrap();
-        assert_eq!(btc(2.5).to_float_in(D::Bitcoin), 2.5);
-        assert_eq!(btc(-2.5).to_float_in(D::MilliBitcoin), -2500.0);
-        assert_eq!(btc(2.5).to_float_in(D::Satoshi), 250000000.0);
-        assert_eq!(btc(-2.5).to_float_in(D::MilliSatoshi), -250000000000.0);
+        let kaon = move |f| SignedAmount::from_kaon(f).unwrap();
+        assert_eq!(kaon(2.5).to_float_in(D::KAON), 2.5);
+        assert_eq!(kaon(-2.5).to_float_in(D::MilliKAON), -2500.0);
+        assert_eq!(kaon(2.5).to_float_in(D::Satoshi), 250000000.0);
+        assert_eq!(kaon(-2.5).to_float_in(D::MilliSatoshi), -250000000000.0);
 
-        let btc = move |f| Amount::from_btc(f).unwrap();
-        assert_eq!(&btc(0.0012).to_float_in(D::Bitcoin).to_string(), "0.0012")
+        let kaon = move |f| Amount::from_kaon(f).unwrap();
+        assert_eq!(&kaon(0.0012).to_float_in(D::KAON).to_string(), "0.0012")
     }
 
     #[test]
-    #[allow(clippy::inconsistent_digit_grouping)] // Group to show 100,000,000 sats per bitcoin.
+    #[allow(clippy::inconsistent_digit_grouping)] // Group to show 100,000,000, sats per KAON.
     fn parsing() {
         use super::ParseAmountError as E;
-        let btc = Denomination::Bitcoin;
+        let kaon = Denomination::KAON;
         let sat = Denomination::Satoshi;
-        let msat = Denomination::MilliSatoshi;
+        let a_kaon = Denomination::AttoKAON;
+        let psat = Denomination::PicoSatoshi;
         let p = Amount::from_str_in;
         let sp = SignedAmount::from_str_in;
 
         assert_eq!(
-            p("x", btc),
+            p("x", kaon),
             Err(E::from(InvalidCharacterError { invalid_char: 'x', position: 0 }))
         );
         assert_eq!(
-            p("-", btc),
+            p("-", kaon),
             Err(E::from(MissingDigitsError { kind: MissingDigitsKind::OnlyMinusSign }))
         );
         assert_eq!(
-            sp("-", btc),
+            sp("-", kaon),
             Err(E::from(MissingDigitsError { kind: MissingDigitsKind::OnlyMinusSign }))
         );
         assert_eq!(
-            p("-1.0x", btc),
+            p("-1.0x", kaon),
             Err(E::from(InvalidCharacterError { invalid_char: 'x', position: 4 }))
         );
         assert_eq!(
-            p("0.0 ", btc),
+            p("0.0 ", kaon),
             Err(E::from(InvalidCharacterError { invalid_char: ' ', position: 3 }))
         );
         assert_eq!(
-            p("0.000.000", btc),
+            p("0.000.000", kaon),
             Err(E::from(InvalidCharacterError { invalid_char: '.', position: 5 }))
         );
         #[cfg(feature = "alloc")]
         let more_than_max = format!("1{}", Amount::MAX);
         #[cfg(feature = "alloc")]
-        assert_eq!(p(&more_than_max, btc), Err(OutOfRangeError::too_big(false).into()));
-        assert_eq!(p("0.000000042", btc), Err(TooPreciseError { position: 10 }.into()));
-        assert_eq!(p("999.0000000", msat), Err(TooPreciseError { position: 0 }.into()));
-        assert_eq!(p("1.0000000", msat), Err(TooPreciseError { position: 0 }.into()));
-        assert_eq!(p("1.1", msat), Err(TooPreciseError { position: 0 }.into()));
-        assert_eq!(p("1000.1", msat), Err(TooPreciseError { position: 5 }.into()));
-        assert_eq!(p("1001.0000000", msat), Err(TooPreciseError { position: 3 }.into()));
-        assert_eq!(p("1000.0000001", msat), Err(TooPreciseError { position: 11 }.into()));
-        assert_eq!(p("1000.1000000", msat), Err(TooPreciseError { position: 5 }.into()));
-        assert_eq!(p("1100.0000000", msat), Err(TooPreciseError { position: 1 }.into()));
-        assert_eq!(p("10001.0000000", msat), Err(TooPreciseError { position: 4 }.into()));
+        assert_eq!(p(&more_than_max, kaon), Err(OutOfRangeError::too_big(false).into()));
+        assert_eq!(p("0.0000000000000000042", kaon), Err(TooPreciseError { position: 20 }.into()));
+        assert_eq!(p("99.0000000", psat), Err(TooPreciseError { position: 0 }.into()));
+        assert_eq!(p("1.0000000", psat), Err(TooPreciseError { position: 0 }.into()));
+        assert_eq!(p("1.1", psat), Err(TooPreciseError { position: 0 }.into()));
+        assert_eq!(p("100.1", psat), Err(TooPreciseError { position: 4 }.into()));
+        assert_eq!(p("101.0000000", psat), Err(TooPreciseError { position: 2 }.into()));
+        assert_eq!(p("100.0000001", psat), Err(TooPreciseError { position: 10 }.into()));
+        assert_eq!(p("100.1000000", psat), Err(TooPreciseError { position: 4 }.into()));
+        assert_eq!(p("110.0000000", psat), Err(TooPreciseError { position: 1 }.into()));
+        assert_eq!(p("10001.0000000", psat), Err(TooPreciseError { position: 4 }.into()));
 
-        assert_eq!(p("1", btc), Ok(Amount::from_sat(1_000_000_00)));
-        assert_eq!(sp("-.5", btc), Ok(SignedAmount::from_sat(-500_000_00)));
+        assert_eq!(p("1", kaon), Ok(Amount::from_sat(1_000_000_000_000_000_000)));
+        assert_eq!(sp("-.5", kaon), Ok(SignedAmount::from_sat(-500_000_000_000_000_000)));
         #[cfg(feature = "alloc")]
-        assert_eq!(sp(&i64::MIN.to_string(), sat), Ok(SignedAmount::from_sat(i64::MIN)));
-        assert_eq!(p("1.1", btc), Ok(Amount::from_sat(1_100_000_00)));
-        assert_eq!(p("100", sat), Ok(Amount::from_sat(100)));
-        assert_eq!(p("55", sat), Ok(Amount::from_sat(55)));
-        assert_eq!(p("5500000000000000000", sat), Ok(Amount::from_sat(55_000_000_000_000_000_00)));
+        assert_eq!(sp(&i128::MIN.to_string(), sat), Ok(SignedAmount::from_sat(i128::MIN)));
+        assert_eq!(p("1.1", kaon), Ok(Amount::from_sat(1_100_000_000_000_000_000)));
+        assert_eq!(p("100", a_kaon), Ok(Amount::from_sat(100)));
+        assert_eq!(p("55", a_kaon), Ok(Amount::from_sat(55)));
+        assert_eq!(p("5500000000000000000", a_kaon), Ok(Amount::from_sat(55_000_000_000_000_000_00)));
         // Should this even pass?
-        assert_eq!(p("5500000000000000000.", sat), Ok(Amount::from_sat(55_000_000_000_000_000_00)));
+        assert_eq!(p("5500000000000000000.", a_kaon), Ok(Amount::from_sat(55_000_000_000_000_000_00)));
         assert_eq!(
-            p("12345678901.12345678", btc),
-            Ok(Amount::from_sat(12_345_678_901__123_456_78))
+            p("12345678901.12345678", kaon),
+            Ok(Amount::from_sat(12_345_678_901__123_456_780_000_000_000))
         );
-        assert_eq!(p("1000.0", msat), Ok(Amount::from_sat(1)));
-        assert_eq!(p("1000.000000000000000000000000000", msat), Ok(Amount::from_sat(1)));
+        assert_eq!(p("100.0", psat), Ok(Amount::from_sat(1)));
+        assert_eq!(p("100.000000000000000000000000000", psat), Ok(Amount::from_sat(1)));
 
-        // make sure satoshi > i64::MAX is checked.
+        // make sure akaon > i128::MAX is checked.
         #[cfg(feature = "alloc")]
         {
-            let amount = Amount::from_sat(i64::MAX as u64);
-            assert_eq!(Amount::from_str_in(&amount.to_string_in(sat), sat), Ok(amount));
+            let amount = Amount::from_sat(i128::MAX as u128);
+            assert_eq!(Amount::from_str_in(&amount.to_string_in(a_kaon), a_kaon), Ok(amount));
             assert!(
-                SignedAmount::from_str_in(&(amount + Amount(1)).to_string_in(sat), sat).is_err()
+                SignedAmount::from_str_in(&(amount + Amount(1)).to_string_in(a_kaon), a_kaon).is_err()
             );
-            assert!(Amount::from_str_in(&(amount + Amount(1)).to_string_in(sat), sat).is_ok());
+            assert!(Amount::from_str_in(&(amount + Amount(1)).to_string_in(a_kaon), a_kaon).is_ok());
         }
 
         assert_eq!(
-            p("12.000", Denomination::MilliSatoshi),
+            p("12.000", Denomination::PicoSatoshi),
             Err(TooPreciseError { position: 0 }.into())
         );
         // exactly 50 chars.
         assert_eq!(
-            p("100000000000000.0000000000000000000000000000000000", Denomination::Bitcoin),
-            Err(OutOfRangeError::too_big(false).into())
+            p("1000000000000000000000000.000000000000000000000000", Denomination::KAON),
+            Err(OutOfRangeError::too_big(false).into()) // TODO: ensure
         );
         // more than 50 chars.
         assert_eq!(
-            p("100000000000000.00000000000000000000000000000000000", Denomination::Bitcoin),
+            p("1000000000000000000000000.000000000000000000000000", Denomination::KAON),
             Err(E::InputTooLarge(InputTooLargeError { len: 51 }))
         );
     }
@@ -2308,22 +2348,22 @@ mod tests {
     fn to_string() {
         use super::Denomination as D;
 
-        assert_eq!(Amount::ONE_BTC.to_string_in(D::Bitcoin), "1");
-        assert_eq!(format!("{:.8}", Amount::ONE_BTC.display_in(D::Bitcoin)), "1.00000000");
-        assert_eq!(Amount::ONE_BTC.to_string_in(D::Satoshi), "100000000");
-        assert_eq!(Amount::ONE_SAT.to_string_in(D::Bitcoin), "0.00000001");
-        assert_eq!(SignedAmount::from_sat(-42).to_string_in(D::Bitcoin), "-0.00000042");
+        assert_eq!(Amount::ONE_KAON.to_string_in(D::KAON), "1");
+        assert_eq!(format!("{:.18}", Amount::ONE_KAON.display_in(D::KAON)), "1.000000000000000000");
+        assert_eq!(Amount::ONE_KAON.to_string_in(D::A_KAON), "1000000000000000000");
+        assert_eq!(Amount::ONE_AKAON.to_string_in(D::KAON), "0.000000000000000001");
+        assert_eq!(SignedAmount::from_sat(-42).to_string_in(D::KAON), "-0.000000000000000042");
 
-        assert_eq!(Amount::ONE_BTC.to_string_with_denomination(D::Bitcoin), "1 BTC");
-        assert_eq!(Amount::ONE_SAT.to_string_with_denomination(D::MilliSatoshi), "1000 msat");
+        assert_eq!(Amount::ONE_KAON.to_string_with_denomination(D::KAON), "1 KAON");
+        assert_eq!(Amount::ONE_AKAON.to_string_with_denomination(D::PicoSatoshi), "100 psats");
         assert_eq!(
-            SignedAmount::ONE_BTC.to_string_with_denomination(D::Satoshi),
+            SignedAmount::ONE_KAON.to_string_with_denomination(D::Satoshi),
             "100000000 satoshi"
         );
-        assert_eq!(Amount::ONE_SAT.to_string_with_denomination(D::Bitcoin), "0.00000001 BTC");
+        assert_eq!(Amount::ONE_AKAON.to_string_with_denomination(D::KAON), "0.000000000000000001 KAON");
         assert_eq!(
-            SignedAmount::from_sat(-42).to_string_with_denomination(D::Bitcoin),
-            "-0.00000042 BTC"
+            SignedAmount::from_sat(-42).to_string_with_denomination(D::KAON),
+            "-0.000000000000000042 KAON"
         );
     }
 
@@ -2347,7 +2387,7 @@ mod tests {
                 #[cfg(feature = "alloc")]
                 fn $test_name() {
                     assert_eq!(format!($format_string, Amount::from_sat($val).display_in(Denomination::$denom)), $expected);
-                    assert_eq!(format!($format_string, SignedAmount::from_sat($val as i64).display_in(Denomination::$denom)), $expected);
+                    assert_eq!(format!($format_string, SignedAmount::from_sat($val as i128).display_in(Denomination::$denom)), $expected);
                 }
             )*
         }
@@ -2360,14 +2400,14 @@ mod tests {
                 #[cfg(feature = "alloc")]
                 fn $test_name() {
                     assert_eq!(format!($format_string, Amount::from_sat($val).display_in(Denomination::$denom).show_denomination()), concat!($expected, $denom_suffix));
-                    assert_eq!(format!($format_string, SignedAmount::from_sat($val as i64).display_in(Denomination::$denom).show_denomination()), concat!($expected, $denom_suffix));
+                    assert_eq!(format!($format_string, SignedAmount::from_sat($val as i128).display_in(Denomination::$denom).show_denomination()), concat!($expected, $denom_suffix));
                 }
             )*
         }
     }
 
     check_format_non_negative! {
-        Satoshi;
+        A_KAON;
         sat_check_fmt_non_negative_0, 0, "{}", "0";
         sat_check_fmt_non_negative_1, 0, "{:2}", " 0";
         sat_check_fmt_non_negative_2, 0, "{:02}", "00";
@@ -2395,7 +2435,7 @@ mod tests {
     }
 
     check_format_non_negative_show_denom! {
-        Satoshi, " satoshi";
+        A_KAON, " aKAON";
         sat_check_fmt_non_negative_show_denom_0, 0, "{}", "0";
         sat_check_fmt_non_negative_show_denom_1, 0, "{:2}", "0";
         sat_check_fmt_non_negative_show_denom_2, 0, "{:02}", "0";
@@ -2422,94 +2462,94 @@ mod tests {
     }
 
     check_format_non_negative! {
-        Bitcoin;
-        btc_check_fmt_non_negative_0, 0, "{}", "0";
-        btc_check_fmt_non_negative_1, 0, "{:2}", " 0";
-        btc_check_fmt_non_negative_2, 0, "{:02}", "00";
-        btc_check_fmt_non_negative_3, 0, "{:.1}", "0.0";
-        btc_check_fmt_non_negative_4, 0, "{:4.1}", " 0.0";
-        btc_check_fmt_non_negative_5, 0, "{:04.1}", "00.0";
-        btc_check_fmt_non_negative_6, 1, "{}", "0.00000001";
-        btc_check_fmt_non_negative_7, 1, "{:2}", "0.00000001";
-        btc_check_fmt_non_negative_8, 1, "{:02}", "0.00000001";
-        btc_check_fmt_non_negative_9, 1, "{:.1}", "0.00000001";
-        btc_check_fmt_non_negative_10, 1, "{:11}", " 0.00000001";
-        btc_check_fmt_non_negative_11, 1, "{:11.1}", " 0.00000001";
-        btc_check_fmt_non_negative_12, 1, "{:011.1}", "00.00000001";
-        btc_check_fmt_non_negative_13, 1, "{:.9}", "0.000000010";
-        btc_check_fmt_non_negative_14, 1, "{:11.9}", "0.000000010";
-        btc_check_fmt_non_negative_15, 1, "{:011.9}", "0.000000010";
-        btc_check_fmt_non_negative_16, 1, "{:12.9}", " 0.000000010";
-        btc_check_fmt_non_negative_17, 1, "{:012.9}", "00.000000010";
-        btc_check_fmt_non_negative_18, 100_000_000, "{}", "1";
-        btc_check_fmt_non_negative_19, 100_000_000, "{:2}", " 1";
-        btc_check_fmt_non_negative_20, 100_000_000, "{:02}", "01";
-        btc_check_fmt_non_negative_21, 100_000_000, "{:.1}", "1.0";
-        btc_check_fmt_non_negative_22, 100_000_000, "{:4.1}", " 1.0";
-        btc_check_fmt_non_negative_23, 100_000_000, "{:04.1}", "01.0";
-        btc_check_fmt_non_negative_24, 110_000_000, "{}", "1.1";
-        btc_check_fmt_non_negative_25, 100_000_001, "{}", "1.00000001";
-        btc_check_fmt_non_negative_26, 100_000_001, "{:1}", "1.00000001";
-        btc_check_fmt_non_negative_27, 100_000_001, "{:.1}", "1.00000001";
-        btc_check_fmt_non_negative_28, 100_000_001, "{:10}", "1.00000001";
-        btc_check_fmt_non_negative_29, 100_000_001, "{:11}", " 1.00000001";
-        btc_check_fmt_non_negative_30, 100_000_001, "{:011}", "01.00000001";
-        btc_check_fmt_non_negative_31, 100_000_001, "{:.8}", "1.00000001";
-        btc_check_fmt_non_negative_32, 100_000_001, "{:.9}", "1.000000010";
-        btc_check_fmt_non_negative_33, 100_000_001, "{:11.9}", "1.000000010";
-        btc_check_fmt_non_negative_34, 100_000_001, "{:12.9}", " 1.000000010";
-        btc_check_fmt_non_negative_35, 100_000_001, "{:012.9}", "01.000000010";
-        btc_check_fmt_non_negative_36, 100_000_001, "{:+011.8}", "+1.00000001";
-        btc_check_fmt_non_negative_37, 100_000_001, "{:+12.8}", " +1.00000001";
-        btc_check_fmt_non_negative_38, 100_000_001, "{:+012.8}", "+01.00000001";
-        btc_check_fmt_non_negative_39, 100_000_001, "{:+12.9}", "+1.000000010";
-        btc_check_fmt_non_negative_40, 100_000_001, "{:+012.9}", "+1.000000010";
-        btc_check_fmt_non_negative_41, 100_000_001, "{:+13.9}", " +1.000000010";
-        btc_check_fmt_non_negative_42, 100_000_001, "{:+013.9}", "+01.000000010";
-        btc_check_fmt_non_negative_43, 100_000_001, "{:<10}", "1.00000001";
-        btc_check_fmt_non_negative_44, 100_000_001, "{:<11}", "1.00000001 ";
-        btc_check_fmt_non_negative_45, 100_000_001, "{:<011}", "01.00000001";
-        btc_check_fmt_non_negative_46, 100_000_001, "{:<11.9}", "1.000000010";
-        btc_check_fmt_non_negative_47, 100_000_001, "{:<12.9}", "1.000000010 ";
-        btc_check_fmt_non_negative_48, 100_000_001, "{:<12}", "1.00000001  ";
-        btc_check_fmt_non_negative_49, 100_000_001, "{:^11}", "1.00000001 ";
-        btc_check_fmt_non_negative_50, 100_000_001, "{:^11.9}", "1.000000010";
-        btc_check_fmt_non_negative_51, 100_000_001, "{:^12.9}", "1.000000010 ";
-        btc_check_fmt_non_negative_52, 100_000_001, "{:^12}", " 1.00000001 ";
-        btc_check_fmt_non_negative_53, 100_000_001, "{:^12.9}", "1.000000010 ";
-        btc_check_fmt_non_negative_54, 100_000_001, "{:^13.9}", " 1.000000010 ";
+        KAON;
+        kaon_check_fmt_non_negative_0, 0, "{}", "0";
+        kaon_check_fmt_non_negative_1, 0, "{:2}", " 0";
+        kaon_check_fmt_non_negative_2, 0, "{:02}", "00";
+        kaon_check_fmt_non_negative_3, 0, "{:.1}", "0.0";
+        kaon_check_fmt_non_negative_4, 0, "{:4.1}", " 0.0";
+        kaon_check_fmt_non_negative_5, 0, "{:04.1}", "00.0";
+        kaon_check_fmt_non_negative_6, 1, "{}", "0.000000000000000001";
+        kaon_check_fmt_non_negative_7, 1, "{:2}", "0.000000000000000001";
+        kaon_check_fmt_non_negative_8, 1, "{:02}", "0.000000000000000001";
+        kaon_check_fmt_non_negative_9, 1, "{:.1}", "0.000000000000000001";
+        kaon_check_fmt_non_negative_10, 1, "{:11}", " 0.000000000000000001";
+        kaon_check_fmt_non_negative_11, 1, "{:11.1}", " 0.000000000000000001";
+        kaon_check_fmt_non_negative_12, 1, "{:011.1}", "00.000000000000000001";
+        kaon_check_fmt_non_negative_13, 1, "{:.19}", "0.0000000000000000010";
+        kaon_check_fmt_non_negative_14, 1, "{:11.19}", "0.0000000000000000010";
+        kaon_check_fmt_non_negative_15, 1, "{:011.19}", "0.0000000000000000010";
+        kaon_check_fmt_non_negative_16, 1, "{:12.19}", " 0.0000000000000000010";
+        kaon_check_fmt_non_negative_17, 1, "{:012.19}", "00.0000000000000000010";
+        kaon_check_fmt_non_negative_18, 1_000_000_000_000_000_000, "{}", "1";
+        kaon_check_fmt_non_negative_19, 1_000_000_000_000_000_000, "{:2}", " 1";
+        kaon_check_fmt_non_negative_20, 1_000_000_000_000_000_000, "{:02}", "01";
+        kaon_check_fmt_non_negative_21, 1_000_000_000_000_000_000, "{:.1}", "1.0";
+        kaon_check_fmt_non_negative_22, 1_000_000_000_000_000_000, "{:4.1}", " 1.0";
+        kaon_check_fmt_non_negative_23, 1_000_000_000_000_000_000, "{:04.1}", "01.0";
+        kaon_check_fmt_non_negative_24, 1_000_000_000_000_000_000, "{}", "1.1";
+        kaon_check_fmt_non_negative_25, 1_000_000_010_000_000_000, "{}", "1.00000001";
+        kaon_check_fmt_non_negative_26, 1_000_000_010_000_000_000, "{:1}", "1.00000001";
+        kaon_check_fmt_non_negative_27, 1_000_000_010_000_000_000, "{:.1}", "1.00000001";
+        kaon_check_fmt_non_negative_28, 1_000_000_010_000_000_000, "{:10}", "1.00000001";
+        kaon_check_fmt_non_negative_29, 1_000_000_010_000_000_000, "{:11}", " 1.00000001";
+        kaon_check_fmt_non_negative_30, 1_000_000_010_000_000_000, "{:011}", "01.00000001";
+        kaon_check_fmt_non_negative_31, 1_000_000_010_000_000_000, "{:.8}", "1.00000001";
+        kaon_check_fmt_non_negative_32, 1_000_000_010_000_000_000, "{:.9}", "1.000000010";
+        kaon_check_fmt_non_negative_33, 1_000_000_010_000_000_000, "{:11.9}", "1.000000010";
+        kaon_check_fmt_non_negative_34, 1_000_000_010_000_000_000, "{:12.9}", " 1.000000010";
+        kaon_check_fmt_non_negative_35, 1_000_000_010_000_000_000, "{:012.9}", "01.000000010";
+        kaon_check_fmt_non_negative_36, 1_000_000_010_000_000_000, "{:+011.8}", "+1.00000001";
+        kaon_check_fmt_non_negative_37, 1_000_000_010_000_000_000, "{:+12.8}", " +1.00000001";
+        kaon_check_fmt_non_negative_38, 1_000_000_010_000_000_000, "{:+012.8}", "+01.00000001";
+        kaon_check_fmt_non_negative_39, 1_000_000_010_000_000_000, "{:+12.9}", "+1.000000010";
+        kaon_check_fmt_non_negative_40, 1_000_000_010_000_000_000, "{:+012.9}", "+1.000000010";
+        kaon_check_fmt_non_negative_41, 1_000_000_010_000_000_000, "{:+13.9}", " +1.000000010";
+        kaon_check_fmt_non_negative_42, 1_000_000_010_000_000_000, "{:+013.9}", "+01.000000010";
+        kaon_check_fmt_non_negative_43, 1_000_000_010_000_000_000, "{:<10}", "1.00000001";
+        kaon_check_fmt_non_negative_44, 1_000_000_010_000_000_000, "{:<11}", "1.00000001 ";
+        kaon_check_fmt_non_negative_45, 1_000_000_010_000_000_000, "{:<011}", "01.00000001";
+        kaon_check_fmt_non_negative_46, 1_000_000_010_000_000_000, "{:<11.9}", "1.000000010";
+        kaon_check_fmt_non_negative_47, 1_000_000_010_000_000_000, "{:<12.9}", "1.000000010 ";
+        kaon_check_fmt_non_negative_48, 1_000_000_010_000_000_000, "{:<12}", "1.00000001  ";
+        kaon_check_fmt_non_negative_49, 1_000_000_010_000_000_000, "{:^11}", "1.00000001 ";
+        kaon_check_fmt_non_negative_50, 1_000_000_010_000_000_000, "{:^11.9}", "1.000000010";
+        kaon_check_fmt_non_negative_51, 1_000_000_010_000_000_000, "{:^12.9}", "1.000000010 ";
+        kaon_check_fmt_non_negative_52, 1_000_000_010_000_000_000, "{:^12}", " 1.00000001 ";
+        kaon_check_fmt_non_negative_53, 1_000_000_010_000_000_000, "{:^12.9}", "1.000000010 ";
+        kaon_check_fmt_non_negative_54, 1_000_000_010_000_000_000, "{:^13.9}", " 1.000000010 ";
     }
 
     check_format_non_negative_show_denom! {
-        Bitcoin, " BTC";
-        btc_check_fmt_non_negative_show_denom_0, 1, "{:14.1}", "0.00000001";
-        btc_check_fmt_non_negative_show_denom_1, 1, "{:14.8}", "0.00000001";
-        btc_check_fmt_non_negative_show_denom_2, 1, "{:15}", " 0.00000001";
-        btc_check_fmt_non_negative_show_denom_3, 1, "{:015}", "00.00000001";
-        btc_check_fmt_non_negative_show_denom_4, 1, "{:.9}", "0.000000010";
-        btc_check_fmt_non_negative_show_denom_5, 1, "{:15.9}", "0.000000010";
-        btc_check_fmt_non_negative_show_denom_6, 1, "{:16.9}", " 0.000000010";
-        btc_check_fmt_non_negative_show_denom_7, 1, "{:016.9}", "00.000000010";
+        KAON, " KAON";
+        kaon_check_fmt_non_negative_show_denom_0, 1, "{:14.1}", "0.000000000000000001";
+        kaon_check_fmt_non_negative_show_denom_1, 1, "{:14.18}", "0.000000000000000001";
+        kaon_check_fmt_non_negative_show_denom_2, 1, "{:15}", " 0.000000000000000001";
+        kaon_check_fmt_non_negative_show_denom_3, 1, "{:015}", "00.000000000000000001";
+        kaon_check_fmt_non_negative_show_denom_4, 1, "{:.19}", "0.0000000000000000010";
+        kaon_check_fmt_non_negative_show_denom_5, 1, "{:15.19}", "0.0000000000000000010";
+        kaon_check_fmt_non_negative_show_denom_6, 1, "{:16.19}", " 0.0000000000000000010";
+        kaon_check_fmt_non_negative_show_denom_7, 1, "{:016.19}", "00.0000000000000000010";
     }
 
     check_format_non_negative_show_denom! {
-        Bitcoin, " BTC ";
-        btc_check_fmt_non_negative_show_denom_align_0, 1, "{:<15}", "0.00000001";
-        btc_check_fmt_non_negative_show_denom_align_1, 1, "{:^15}", "0.00000001";
-        btc_check_fmt_non_negative_show_denom_align_2, 1, "{:^16}", " 0.00000001";
+        KAON, " KAON ";
+        kaon_check_fmt_non_negative_show_denom_align_0, 1, "{:<15}", "0.000000000000000001";
+        kaon_check_fmt_non_negative_show_denom_align_1, 1, "{:^15}", "0.000000000000000001";
+        kaon_check_fmt_non_negative_show_denom_align_2, 1, "{:^16}", " 0.000000000000000001";
     }
 
     check_format_non_negative! {
-        MilliSatoshi;
+        PicoSatoshi;
         msat_check_fmt_non_negative_0, 0, "{}", "0";
-        msat_check_fmt_non_negative_1, 1, "{}", "1000";
-        msat_check_fmt_non_negative_2, 1, "{:5}", " 1000";
-        msat_check_fmt_non_negative_3, 1, "{:05}", "01000";
-        msat_check_fmt_non_negative_4, 1, "{:.1}", "1000.0";
-        msat_check_fmt_non_negative_5, 1, "{:6.1}", "1000.0";
-        msat_check_fmt_non_negative_6, 1, "{:06.1}", "1000.0";
-        msat_check_fmt_non_negative_7, 1, "{:7.1}", " 1000.0";
-        msat_check_fmt_non_negative_8, 1, "{:07.1}", "01000.0";
+        msat_check_fmt_non_negative_1, 1, "{}", "100";
+        msat_check_fmt_non_negative_2, 1, "{:5}", " 100";
+        msat_check_fmt_non_negative_3, 1, "{:05}", "00100";
+        msat_check_fmt_non_negative_4, 1, "{:.1}", "100.0";
+        msat_check_fmt_non_negative_5, 1, "{:6.1}", "100.0";
+        msat_check_fmt_non_negative_6, 1, "{:06.1}", "100.0";
+        msat_check_fmt_non_negative_7, 1, "{:7.1}", "  100.0";
+        msat_check_fmt_non_negative_8, 1, "{:07.1}", "00100.0";
     }
 
     #[test]
@@ -2518,40 +2558,40 @@ mod tests {
         let ua = Amount::from_sat;
 
         assert_eq!(Amount::MAX.to_signed(), Err(OutOfRangeError::too_big(true)));
-        assert_eq!(ua(i64::MAX as u64).to_signed(), Ok(sa(i64::MAX)));
-        assert_eq!(ua(i64::MAX as u64 + 1).to_signed(), Err(OutOfRangeError::too_big(true)));
+        assert_eq!(ua(i128::MAX as u128).to_signed(), Ok(sa(i128::MAX)));
+        assert_eq!(ua(i128::MAX as u128 + 1).to_signed(), Err(OutOfRangeError::too_big(true)));
 
-        assert_eq!(sa(i64::MAX).to_unsigned(), Ok(ua(i64::MAX as u64)));
+        assert_eq!(sa(i128::MAX).to_unsigned(), Ok(ua(i128::MAX as u128)));
 
-        assert_eq!(sa(i64::MAX).to_unsigned().unwrap().to_signed(), Ok(sa(i64::MAX)));
+        assert_eq!(sa(i128::MAX).to_unsigned().unwrap().to_signed(), Ok(sa(i128::MAX)));
     }
 
     #[test]
-    #[allow(clippy::inconsistent_digit_grouping)] // Group to show 100,000,000 sats per bitcoin.
+    #[allow(clippy::inconsistent_digit_grouping)] // Group to show 100,000,000 sats per KAON.
     fn from_str() {
         use ParseDenominationError::*;
 
         use super::ParseAmountError as E;
 
         assert_eq!(
-            Amount::from_str("x BTC"),
+            Amount::from_str("x KAON"),
             Err(InvalidCharacterError { invalid_char: 'x', position: 0 }.into())
         );
         assert_eq!(
-            Amount::from_str("xBTC"),
-            Err(Unknown(UnknownDenominationError("xBTC".into())).into()),
+            Amount::from_str("xKAON"),
+            Err(Unknown(UnknownDenominationError("xKAON".into())).into()),
         );
         assert_eq!(
-            Amount::from_str("5 BTC BTC"),
-            Err(Unknown(UnknownDenominationError("BTC BTC".into())).into()),
+            Amount::from_str("5 KAON KAON"),
+            Err(Unknown(UnknownDenominationError("KAON KAON".into())).into()),
         );
         assert_eq!(
-            Amount::from_str("5BTC BTC"),
+            Amount::from_str("5KAON KAON"),
             Err(E::from(InvalidCharacterError { invalid_char: 'B', position: 1 }).into())
         );
         assert_eq!(
-            Amount::from_str("5 5 BTC"),
-            Err(Unknown(UnknownDenominationError("5 BTC".into())).into()),
+            Amount::from_str("5 5 KAON"),
+            Err(Unknown(UnknownDenominationError("5 KAON".into())).into()),
         );
 
         #[track_caller]
@@ -2582,28 +2622,28 @@ mod tests {
 
         case("5 BCH", Err(Unknown(UnknownDenominationError("BCH".into()))));
 
-        case("-1 BTC", Err(OutOfRangeError::negative()));
-        case("-0.0 BTC", Err(OutOfRangeError::negative()));
-        case("0.123456789 BTC", Err(TooPreciseError { position: 10 }));
-        scase("-0.1 satoshi", Err(TooPreciseError { position: 3 }));
-        case("0.123456 mBTC", Err(TooPreciseError { position: 7 }));
-        scase("-1.001 bits", Err(TooPreciseError { position: 5 }));
-        scase("-200000000000 BTC", Err(OutOfRangeError::too_small()));
-        case("18446744073709551616 sat", Err(OutOfRangeError::too_big(false)));
+        case("-1 KAON", Err(OutOfRangeError::negative()));
+        case("-0.0 KAON", Err(OutOfRangeError::negative()));
+        case("0.0000000000123456789 KAON", Err(TooPreciseError { position: 20 }));
+        scase("-0.1 psat", Err(TooPreciseError { position: 3 }));
+        case("0.000000000123456 mKAON", Err(TooPreciseError { position: 16 }));
+        scase("-1.0000000000001 bits", Err(TooPreciseError { position: 15 }));
+        scase("-2000000000000000000000 KAON", Err(OutOfRangeError::too_small())); // TODO: ensure
+        case("184467440737095516160000000000 sat", Err(OutOfRangeError::too_big(false))); // TODO: ensure
 
-        ok_case(".5 bits", Amount::from_sat(50));
-        ok_scase("-.5 bits", SignedAmount::from_sat(-50));
-        ok_case("0.00253583 BTC", Amount::from_sat(253583));
-        ok_scase("-5 satoshi", SignedAmount::from_sat(-5));
-        ok_case("0.10000000 BTC", Amount::from_sat(100_000_00));
-        ok_scase("-100 bits", SignedAmount::from_sat(-10_000));
+        ok_case(".00000000005 bits", Amount::from_sat(50));
+        ok_scase("-.00000000005 bits", SignedAmount::from_sat(-50));
+        ok_case("0.000000000000253583 KAON", Amount::from_sat(253583));
+        ok_scase("-5 satoshi", SignedAmount::from_sat(-50000000000));
+        ok_case("0.000000000010000000 KAON", Amount::from_sat(100_000_00));
+        ok_scase("-100 bits", SignedAmount::from_sat(-100_000_000_000_000));
         #[cfg(feature = "alloc")]
-        ok_scase(&format!("{} SAT", i64::MIN), SignedAmount::from_sat(i64::MIN));
+        ok_scase(&format!("{} aKAON", i128::MIN), SignedAmount::from_sat(i128::MIN));
     }
 
     #[cfg(feature = "alloc")]
     #[test]
-    #[allow(clippy::inconsistent_digit_grouping)] // Group to show 100,000,000 sats per bitcoin.
+    #[allow(clippy::inconsistent_digit_grouping)] // Group to show 100,000,000 sats per KAON.
     fn to_from_string_in() {
         use super::Denomination as D;
         let ua_str = Amount::from_str_in;
@@ -2611,79 +2651,80 @@ mod tests {
         let sa_str = SignedAmount::from_str_in;
         let sa_sat = SignedAmount::from_sat;
 
-        assert_eq!("0.5", Amount::from_sat(50).to_string_in(D::Bit));
-        assert_eq!("-0.5", SignedAmount::from_sat(-50).to_string_in(D::Bit));
-        assert_eq!("0.00253583", Amount::from_sat(253583).to_string_in(D::Bitcoin));
-        assert_eq!("-5", SignedAmount::from_sat(-5).to_string_in(D::Satoshi));
-        assert_eq!("0.1", Amount::from_sat(100_000_00).to_string_in(D::Bitcoin));
-        assert_eq!("-100", SignedAmount::from_sat(-10_000).to_string_in(D::Bit));
-        assert_eq!("2535830", Amount::from_sat(253583).to_string_in(D::NanoBitcoin));
-        assert_eq!("-100000", SignedAmount::from_sat(-10_000).to_string_in(D::NanoBitcoin));
-        assert_eq!("2535830000", Amount::from_sat(253583).to_string_in(D::PicoBitcoin));
-        assert_eq!("-100000000", SignedAmount::from_sat(-10_000).to_string_in(D::PicoBitcoin));
+        assert_eq!("0.00000000005", Amount::from_sat(50).to_string_in(D::Bit));
+        assert_eq!("-0.00000000005", SignedAmount::from_sat(-50).to_string_in(D::Bit));
+        assert_eq!("0.000000000000253583", Amount::from_sat(253583).to_string_in(D::KAON));
+        assert_eq!("-5", SignedAmount::from_sat(-50_000_000_000).to_string_in(D::Satoshi));
+        assert_eq!("0.00000000001", Amount::from_sat(100_000_00).to_string_in(D::KAON));
+        assert_eq!("-100", SignedAmount::from_sat(-100_000_000_000_000).to_string_in(D::Bit));
+        assert_eq!("2535830", Amount::from_sat(2535830_000_000_000).to_string_in(D::NanoKAON));
+        assert_eq!("0.10000000", format!("{:.8}", Amount::from_sat(100_000_000_000_000_000).display_in(D::KAON)));
+        assert_eq!("-100000",SignedAmount::from_sat(-100_000_000_000_000).to_string_in(D::NanoKAON));
+        assert_eq!("2535830000", Amount::from_sat(2535830_000_000_000).to_string_in(D::PicoKAON));
+        assert_eq!("-100000000", SignedAmount::from_sat(-1000000000000000).to_string_in(D::PicoKAON));
 
-        assert_eq!("0.50", format!("{:.2}", Amount::from_sat(50).display_in(D::Bit)));
-        assert_eq!("-0.50", format!("{:.2}", SignedAmount::from_sat(-50).display_in(D::Bit)));
+        assert_eq!("0.000000000050", format!("{:.12}", Amount::from_sat(50).display_in(D::Bit)));
+        assert_eq!("-0.000000000050", format!("{:.12}", SignedAmount::from_sat(-50).display_in(D::Bit)));
         assert_eq!(
             "0.10000000",
-            format!("{:.8}", Amount::from_sat(100_000_00).display_in(D::Bitcoin))
+            format!("{:.8}", Amount::from_sat(100_000_000_000_000_000).display_in(D::KAON))
         );
-        assert_eq!("-100.00", format!("{:.2}", SignedAmount::from_sat(-10_000).display_in(D::Bit)));
+        assert_eq!("-100.00", format!("{:.2}", SignedAmount::from_sat(-100_000_000_000_000).display_in(D::Bit)));
 
         assert_eq!(ua_str(&ua_sat(0).to_string_in(D::Satoshi), D::Satoshi), Ok(ua_sat(0)));
-        assert_eq!(ua_str(&ua_sat(500).to_string_in(D::Bitcoin), D::Bitcoin), Ok(ua_sat(500)));
+        assert_eq!(ua_str(&ua_sat(500).to_string_in(D::KAON), D::KAON), Ok(ua_sat(500)));
         assert_eq!(
-            ua_str(&ua_sat(21_000_000).to_string_in(D::Bit), D::Bit),
-            Ok(ua_sat(21_000_000))
+            ua_str(&ua_sat(21_000_000_000_000_000_000).to_string_in(D::Bit), D::Bit),
+            Ok(ua_sat(21_000_000_000_000_000_000))
         );
         assert_eq!(
-            ua_str(&ua_sat(1).to_string_in(D::MicroBitcoin), D::MicroBitcoin),
+            ua_str(&ua_sat(1).to_string_in(D::MicroKAON), D::MicroKAON), 
             Ok(ua_sat(1))
         );
         assert_eq!(
-            ua_str(&ua_sat(1_000_000_000_000).to_string_in(D::MilliBitcoin), D::MilliBitcoin),
+            ua_str(&ua_sat(1_000_000_000_000).to_string_in(D::MilliKAON), D::MilliKAON),
             Ok(ua_sat(1_000_000_000_000))
         );
-        assert!(ua_str(&ua_sat(u64::MAX).to_string_in(D::MilliBitcoin), D::MilliBitcoin).is_ok());
+        assert!(ua_str(&ua_sat(u128::MAX).to_string_in(D::MilliKAON), D::MilliKAON).is_ok());
 
         assert_eq!(
-            sa_str(&sa_sat(-1).to_string_in(D::MicroBitcoin), D::MicroBitcoin),
+            sa_str(&sa_sat(-1).to_string_in(D::MicroKAON), D::MicroKAON), 
             Ok(sa_sat(-1))
         );
 
         assert_eq!(
-            sa_str(&sa_sat(i64::MAX).to_string_in(D::Satoshi), D::MicroBitcoin),
+            sa_str(&sa_sat(i128::MAX).to_string_in(D::Satoshi), D::MicroKAON),
             Err(OutOfRangeError::too_big(true).into())
         );
         // Test an overflow bug in `abs()`
         assert_eq!(
-            sa_str(&sa_sat(i64::MIN).to_string_in(D::Satoshi), D::MicroBitcoin),
+            sa_str(&sa_sat(i128::MIN).to_string_in(D::Satoshi), D::MicroKAON),
             Err(OutOfRangeError::too_small().into())
         );
 
         assert_eq!(
-            sa_str(&sa_sat(-1).to_string_in(D::NanoBitcoin), D::NanoBitcoin),
+            sa_str(&sa_sat(-1).to_string_in(D::NanoKAON), D::NanoKAON), 
             Ok(sa_sat(-1))
         );
         assert_eq!(
-            sa_str(&sa_sat(i64::MAX).to_string_in(D::Satoshi), D::NanoBitcoin),
+            sa_str(&sa_sat(i128::MAX).to_string_in(D::Satoshi), D::NanoKAON),
             Err(TooPreciseError { position: 18 }.into())
         );
         assert_eq!(
-            sa_str(&sa_sat(i64::MIN).to_string_in(D::Satoshi), D::NanoBitcoin),
+            sa_str(&sa_sat(i128::MIN).to_string_in(D::Satoshi), D::NanoKAON),
             Err(TooPreciseError { position: 19 }.into())
         );
 
         assert_eq!(
-            sa_str(&sa_sat(-1).to_string_in(D::PicoBitcoin), D::PicoBitcoin),
+            sa_str(&sa_sat(-1).to_string_in(D::PicoKAON), D::PicoKAON), 
             Ok(sa_sat(-1))
         );
         assert_eq!(
-            sa_str(&sa_sat(i64::MAX).to_string_in(D::Satoshi), D::PicoBitcoin),
+            sa_str(&sa_sat(i128::MAX).to_string_in(D::Satoshi), D::PicoKAON),
             Err(TooPreciseError { position: 18 }.into())
         );
         assert_eq!(
-            sa_str(&sa_sat(i64::MIN).to_string_in(D::Satoshi), D::PicoBitcoin),
+            sa_str(&sa_sat(i128::MIN).to_string_in(D::Satoshi), D::PicoKAON),
             Err(TooPreciseError { position: 19 }.into())
         );
     }
@@ -2697,22 +2738,22 @@ mod tests {
 
         let amt = Amount::from_sat(42);
         let denom = Amount::to_string_with_denomination;
-        assert_eq!(Amount::from_str(&denom(amt, D::Bitcoin)), Ok(amt));
-        assert_eq!(Amount::from_str(&denom(amt, D::MilliBitcoin)), Ok(amt));
-        assert_eq!(Amount::from_str(&denom(amt, D::MicroBitcoin)), Ok(amt));
+        assert_eq!(Amount::from_str(&denom(amt, D::KAON)), Ok(amt));
+        assert_eq!(Amount::from_str(&denom(amt, D::MilliKAON)), Ok(amt));
+        assert_eq!(Amount::from_str(&denom(amt, D::MicroKAON)), Ok(amt));
         assert_eq!(Amount::from_str(&denom(amt, D::Bit)), Ok(amt));
         assert_eq!(Amount::from_str(&denom(amt, D::Satoshi)), Ok(amt));
-        assert_eq!(Amount::from_str(&denom(amt, D::NanoBitcoin)), Ok(amt));
+        assert_eq!(Amount::from_str(&denom(amt, D::NanoKAON)), Ok(amt));
         assert_eq!(Amount::from_str(&denom(amt, D::MilliSatoshi)), Ok(amt));
-        assert_eq!(Amount::from_str(&denom(amt, D::PicoBitcoin)), Ok(amt));
+        assert_eq!(Amount::from_str(&denom(amt, D::PicoKAON)), Ok(amt));
 
         assert_eq!(
-            Amount::from_str("42 satoshi BTC"),
-            Err(Unknown(UnknownDenominationError("satoshi BTC".into())).into()),
+            Amount::from_str("42 satoshi KAON"),
+            Err(Unknown(UnknownDenominationError("satoshi KAON".into())).into()),
         );
         assert_eq!(
-            SignedAmount::from_str("-42 satoshi BTC"),
-            Err(Unknown(UnknownDenominationError("satoshi BTC".into())).into()),
+            SignedAmount::from_str("-42 satoshi KAON"),
+            Err(Unknown(UnknownDenominationError("satoshi KAON".into())).into()),
         );
     }
 
@@ -2732,9 +2773,9 @@ mod tests {
             &[
                 serde_test::Token::Struct { name: "T", len: 2 },
                 serde_test::Token::Str("amt"),
-                serde_test::Token::U64(123456789),
+                serde_test::Token::U64(123456789), // TODO: add U128
                 serde_test::Token::Str("samt"),
-                serde_test::Token::I64(-123456789),
+                serde_test::Token::I64(-123456789), // TODO: add I128
                 serde_test::Token::StructEnd,
             ],
         );
@@ -2743,21 +2784,21 @@ mod tests {
     #[cfg(feature = "serde")]
     #[cfg(feature = "alloc")]
     #[test]
-    #[allow(clippy::inconsistent_digit_grouping)] // Group to show 100,000,000 sats per bitcoin.
-    fn serde_as_btc() {
+    #[allow(clippy::inconsistent_digit_grouping)] // Group to show 100,000,000...0 sats per KAON.
+    fn serde_as_kaon() {
         use serde_json;
 
         #[derive(Serialize, Deserialize, PartialEq, Debug)]
         struct T {
-            #[serde(with = "crate::amount::serde::as_btc")]
+            #[serde(with = "crate::amount::serde::as_kaon")]
             pub amt: Amount,
-            #[serde(with = "crate::amount::serde::as_btc")]
+            #[serde(with = "crate::amount::serde::as_kaon")]
             pub samt: SignedAmount,
         }
 
         let orig = T {
-            amt: Amount::from_sat(21_000_000__000_000_01),
-            samt: SignedAmount::from_sat(-21_000_000__000_000_01),
+            amt: Amount::from_sat(21_000_000__000_000_010_000_000_000),
+            samt: SignedAmount::from_sat(-21_000_000__000_000_010_000_000_000),
         };
 
         let json = "{\"amt\": 21000000.00000001, \
@@ -2770,11 +2811,11 @@ mod tests {
 
         // errors
         let t: Result<T, serde_json::Error> =
-            serde_json::from_str("{\"amt\": 1000000.000000001, \"samt\": 1}");
+            serde_json::from_str("{\"amt\": 1000000.00000000000000001, \"samt\": 1}");
         assert!(t
             .unwrap_err()
             .to_string()
-            .contains(&ParseAmountError::TooPrecise(TooPreciseError { position: 16 }).to_string()));
+            .contains(&ParseAmountError::TooPrecise(TooPreciseError { position: 24 }).to_string()));
         let t: Result<T, serde_json::Error> = serde_json::from_str("{\"amt\": -1, \"samt\": 1}");
         assert!(t.unwrap_err().to_string().contains(&OutOfRangeError::negative().to_string()));
     }
@@ -2782,21 +2823,21 @@ mod tests {
     #[cfg(feature = "serde")]
     #[cfg(feature = "alloc")]
     #[test]
-    #[allow(clippy::inconsistent_digit_grouping)] // Group to show 100,000,000 sats per bitcoin.
-    fn serde_as_btc_opt() {
+    #[allow(clippy::inconsistent_digit_grouping)] // Group to show 100,000,000 sats per KAON.
+    fn serde_as_kaon_opt() {
         use serde_json;
 
         #[derive(Serialize, Deserialize, PartialEq, Debug, Eq)]
         struct T {
-            #[serde(default, with = "crate::amount::serde::as_btc::opt")]
+            #[serde(default, with = "crate::amount::serde::as_kaon::opt")]
             pub amt: Option<Amount>,
-            #[serde(default, with = "crate::amount::serde::as_btc::opt")]
+            #[serde(default, with = "crate::amount::serde::as_kaon::opt")]
             pub samt: Option<SignedAmount>,
         }
 
         let with = T {
-            amt: Some(Amount::from_sat(2_500_000_00)),
-            samt: Some(SignedAmount::from_sat(-2_500_000_00)),
+            amt: Some(Amount::from_sat(2_500_000_000_000_000_000)),
+            samt: Some(SignedAmount::from_sat(-2_500_000_000_000_000_000)),
         };
         let without = T { amt: None, samt: None };
 
@@ -2824,7 +2865,7 @@ mod tests {
     #[cfg(feature = "serde")]
     #[cfg(feature = "alloc")]
     #[test]
-    #[allow(clippy::inconsistent_digit_grouping)] // Group to show 100,000,000 sats per bitcoin.
+    #[allow(clippy::inconsistent_digit_grouping)] // Group to show 100,000,000 sats per KAON.
     fn serde_as_sat_opt() {
         use serde_json;
 
@@ -2837,8 +2878,8 @@ mod tests {
         }
 
         let with = T {
-            amt: Some(Amount::from_sat(2_500_000_00)),
-            samt: Some(SignedAmount::from_sat(-2_500_000_00)),
+            amt: Some(Amount::from_sat(2_500_000_000_000_000_000)),
+            samt: Some(SignedAmount::from_sat(-2_500_000_000_000_000_000)),
         };
         let without = T { amt: None, samt: None };
 
@@ -2849,14 +2890,14 @@ mod tests {
             assert_eq!(w, **s);
         }
 
-        let t: T = serde_json::from_str("{\"amt\": 250000000, \"samt\": -250000000}").unwrap();
+        let t: T = serde_json::from_str("{\"amt\": 2500000000000000000, \"samt\": -2500000000000000000}").unwrap();
         assert_eq!(t, with);
 
         let t: T = serde_json::from_str("{}").unwrap();
         assert_eq!(t, without);
 
         let value_with: serde_json::Value =
-            serde_json::from_str("{\"amt\": 250000000, \"samt\": -250000000}").unwrap();
+            serde_json::from_str("{\"amt\": 2500000000000000000, \"samt\": -2500000000000000000}").unwrap();
         assert_eq!(with, serde_json::from_value(value_with).unwrap());
 
         let value_without: serde_json::Value = serde_json::from_str("{}").unwrap();
@@ -2887,12 +2928,12 @@ mod tests {
         let sum = amounts.into_iter().checked_sum();
         assert_eq!(Some(Amount::from_sat(1400)), sum);
 
-        let amounts = [Amount::from_sat(u64::MAX), Amount::from_sat(1337), Amount::from_sat(21)];
+        let amounts = [Amount::from_sat(u128::MAX), Amount::from_sat(1337), Amount::from_sat(21)];
         let sum = amounts.into_iter().checked_sum();
         assert_eq!(None, sum);
 
         let amounts = [
-            SignedAmount::from_sat(i64::MIN),
+            SignedAmount::from_sat(i128::MIN),
             SignedAmount::from_sat(-1),
             SignedAmount::from_sat(21),
         ];
@@ -2900,7 +2941,7 @@ mod tests {
         assert_eq!(None, sum);
 
         let amounts = [
-            SignedAmount::from_sat(i64::MAX),
+            SignedAmount::from_sat(i128::MAX),
             SignedAmount::from_sat(1),
             SignedAmount::from_sat(21),
         ];
@@ -2917,8 +2958,8 @@ mod tests {
     fn denomination_string_acceptable_forms() {
         // Non-exhaustive list of valid forms.
         let valid = [
-            "BTC", "btc", "mBTC", "mbtc", "uBTC", "ubtc", "SATOSHI", "satoshi", "SATOSHIS",
-            "satoshis", "SAT", "sat", "SATS", "sats", "bit", "bits", "nBTC", "pBTC",
+            "KAON", "kaon", "mKAON", "mkaon", "uKAON", "ukaon", "SATOSHI", "satoshi", "SATOSHIS",
+            "satoshis", "SAT", "sat", "SATS", "sats", "bit", "bits", "nKAON", "pKAON",
         ];
         for denom in valid.iter() {
             assert!(Denomination::from_str(denom).is_ok());
@@ -2927,7 +2968,7 @@ mod tests {
 
     #[test]
     fn disallow_confusing_forms() {
-        let confusing = ["Msat", "Msats", "MSAT", "MSATS", "MSat", "MSats", "MBTC", "Mbtc", "PBTC"];
+        let confusing = ["Msat", "Msats", "MSAT", "MSATS", "MSat", "MSats", "MBTC", "Mbtc", "PBTC", "MKAON", "Mkaon", "PKAON"];
         for denom in confusing.iter() {
             match Denomination::from_str(denom) {
                 Ok(_) => panic!("from_str should error for {}", denom),
@@ -2940,7 +2981,7 @@ mod tests {
     #[test]
     fn disallow_unknown_denomination() {
         // Non-exhaustive list of unknown forms.
-        let unknown = ["NBTC", "UBTC", "ABC", "abc", "cBtC", "Sat", "Sats"];
+        let unknown = ["BTC", "NBTC", "UBTC", "NKAON", "UKAON", "ABC", "abc", "cBtC", "cKAON", "Sat", "Sats"];
         for denom in unknown.iter() {
             match Denomination::from_str(denom) {
                 Ok(_) => panic!("from_str should error for {}", denom),
@@ -2953,22 +2994,22 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn trailing_zeros_for_amount() {
-        assert_eq!(format!("{}", Amount::ONE_SAT), "0.00000001 BTC");
-        assert_eq!(format!("{}", Amount::ONE_BTC), "1 BTC");
-        assert_eq!(format!("{}", Amount::from_sat(1)), "0.00000001 BTC");
-        assert_eq!(format!("{}", Amount::from_sat(10)), "0.00000010 BTC");
-        assert_eq!(format!("{:.2}", Amount::from_sat(10)), "0.0000001 BTC");
-        assert_eq!(format!("{:.2}", Amount::from_sat(100)), "0.000001 BTC");
-        assert_eq!(format!("{:.2}", Amount::from_sat(1000)), "0.00001 BTC");
-        assert_eq!(format!("{:.2}", Amount::from_sat(10_000)), "0.0001 BTC");
-        assert_eq!(format!("{:.2}", Amount::from_sat(100_000)), "0.001 BTC");
-        assert_eq!(format!("{:.2}", Amount::from_sat(1_000_000)), "0.01 BTC");
-        assert_eq!(format!("{:.2}", Amount::from_sat(10_000_000)), "0.10 BTC");
-        assert_eq!(format!("{:.2}", Amount::from_sat(100_000_000)), "1.00 BTC");
-        assert_eq!(format!("{}", Amount::from_sat(100_000_000)), "1 BTC");
-        assert_eq!(format!("{}", Amount::from_sat(40_000_000_000)), "400 BTC");
-        assert_eq!(format!("{:.10}", Amount::from_sat(100_000_000)), "1.0000000000 BTC");
-        assert_eq!(format!("{}", Amount::from_sat(400_000_000_000_010)), "4000000.00000010 BTC");
-        assert_eq!(format!("{}", Amount::from_sat(400_000_000_000_000)), "4000000 BTC");
+        assert_eq!(format!("{}", Amount::ONE_AKAON), "0.000000000000000001 KAON");
+        assert_eq!(format!("{}", Amount::ONE_KAON), "1 KAON");
+        assert_eq!(format!("{}", Amount::from_sat(1)), "0.000000000000000001 KAON");
+        assert_eq!(format!("{}", Amount::from_sat(10)), "0.000000000000000010 KAON");
+        assert_eq!(format!("{:.2}", Amount::from_sat(10)), "0.00000000000000001 KAON");
+        assert_eq!(format!("{:.2}", Amount::from_sat(100)), "0.0000000000000001 KAON");
+        assert_eq!(format!("{:.2}", Amount::from_sat(1000)), "0.000000000000001 KAON");
+        assert_eq!(format!("{:.2}", Amount::from_sat(10_000)), "0.0000000000001 KAON");
+        assert_eq!(format!("{:.2}", Amount::from_sat(100_000)), "0.000000000001 KAON");
+        assert_eq!(format!("{:.2}", Amount::from_sat(1_000_000)), "0.00000000001 KAON");
+        assert_eq!(format!("{:.2}", Amount::from_sat(10_000_000)), "0.0000000001 KAON");
+        assert_eq!(format!("{:.2}", Amount::from_sat(1_000_000_000_000_000_000)), "1.00 KAON");
+        assert_eq!(format!("{}", Amount::from_sat(1_000_000_000_000_000_000)), "1 KAON");
+        assert_eq!(format!("{}", Amount::from_sat(400_000_000_000_000_000_000)), "400 KAON");
+        assert_eq!(format!("{:.10}", Amount::from_sat(1_000_000_000_000_000_000)), "1.0000000000 KAON");
+        assert_eq!(format!("{}", Amount::from_sat(4_000_000_000_000_000_010_000_000)), "4000000.00000010 KAON");
+        assert_eq!(format!("{}", Amount::from_sat(4_000_000_000_000_000_000_000_000)),"4000000 KAON");
     }
 }
