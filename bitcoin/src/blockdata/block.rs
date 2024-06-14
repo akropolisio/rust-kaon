@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin blocks.
+//! Bitcoin/Kaon blocks.
 //!
 //! A block is a bundle of transactions with a proof-of-work attached,
 //! which commits to an earlier block to form the blockchain. This
@@ -11,6 +11,7 @@ use core::fmt;
 
 use hashes::{sha256d, Hash, HashEngine};
 use io::{BufRead, Write};
+use units::Amount;
 
 use super::Weight;
 use crate::blockdata::script;
@@ -20,10 +21,10 @@ use crate::internal_macros::{impl_consensus_encoding, impl_hashencode};
 use crate::pow::{CompactTarget, Target, Work};
 use crate::prelude::*;
 use crate::script::PushBytes;
-use crate::{merkle_tree, VarInt};
+use crate::{merkle_tree, CompactSize, Network};
 
 hashes::hash_newtype! {
-    /// A bitcoin block hash.
+    /// A Kaon block hash.
     pub struct BlockHash(sha256d::Hash);
     /// A hash of the Merkle tree branch or root for transactions.
     pub struct TxMerkleNode(sha256d::Hash);
@@ -31,10 +32,16 @@ hashes::hash_newtype! {
     pub struct WitnessMerkleNode(sha256d::Hash);
     /// A hash corresponding to the witness structure commitment in the coinbase transaction.
     pub struct WitnessCommitment(sha256d::Hash);
+    /// A hashed corresponding to an EVM's Trie State root.
+    pub struct BlockStateRoot(sha256d::Hash);
+    /// A hashed corresponding to a Global Execution Storage of EVM related UTXO transaction.
+    pub struct BlockUTXORoot(sha256d::Hash);
 }
 impl_hashencode!(BlockHash);
 impl_hashencode!(TxMerkleNode);
 impl_hashencode!(WitnessMerkleNode);
+impl_hashencode!(BlockStateRoot);
+impl_hashencode!(BlockUTXORoot);
 
 impl From<Txid> for TxMerkleNode {
     fn from(txid: Txid) -> Self { Self::from_byte_array(txid.to_byte_array()) }
@@ -44,16 +51,17 @@ impl From<Wtxid> for WitnessMerkleNode {
     fn from(wtxid: Wtxid) -> Self { Self::from_byte_array(wtxid.to_byte_array()) }
 }
 
-/// Bitcoin block header.
+/// Kaon block header.
 ///
 /// Contains all the block's information except the actual transactions, but
 /// including a root of a [merkle tree] committing to all transactions in the block.
 ///
 /// [merkle tree]: https://en.wikipedia.org/wiki/Merkle_tree
 ///
-/// ### Bitcoin Core References
+/// ### Kaon Core References
 ///
 /// * [CBlockHeader definition](https://github.com/bitcoin/bitcoin/blob/345457b542b6a980ccfbc868af0970a6f91d1b82/src/primitives/block.h#L20)
+/// Actual Kaon code reference would be provided later.
 #[derive(Copy, PartialEq, Eq, Clone, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
@@ -70,14 +78,31 @@ pub struct Header {
     pub bits: CompactTarget,
     /// The nonce, selected to obtain a low enough blockhash.
     pub nonce: u32,
+    /// Hash the the EVM Trie State after the block transactions execution.
+    pub hash_state_root: BlockStateRoot,
+    /// Hash the the EVM and non-EVM transactions.
+    pub hash_utxo_root: BlockUTXORoot,
+    /// Total block fees divided by gas price at that height (not including EVM gas consumption).
+    pub gas_used: Amount,
 }
 
-impl_consensus_encoding!(Header, version, prev_blockhash, merkle_root, time, bits, nonce);
+impl_consensus_encoding!(
+    Header,
+    version,
+    prev_blockhash,
+    merkle_root,
+    time,
+    bits,
+    nonce,
+    hash_state_root,
+    hash_utxo_root,
+    gas_used
+);
 
 impl Header {
     /// The number of bytes that the block header contributes to the size of a block.
-    // Serialized length of fields (version, prev_blockhash, merkle_root, time, bits, nonce)
-    pub const SIZE: usize = 4 + 32 + 32 + 4 + 4 + 4; // 80
+    // Serialized length of fields (version, prev_blockhash, merkle_root, time, bits, nonce, hash_state_root, hash_utxo_root, gas_used)
+    pub const SIZE: usize = 4 + 32 + 32 + 4 + 4 + 4 + 32 + 32 + 8; // 152 // TODO: amount size is dinamic, we need to calculate it more precise
 
     /// Returns the block hash.
     pub fn block_hash(&self) -> BlockHash {
@@ -89,6 +114,7 @@ impl Header {
     /// Computes the target (range [0, T] inclusive) that a blockhash must land in to be valid.
     pub fn target(&self) -> Target { self.bits.into() }
 
+    // TODO: add dPOS
     /// Computes the popular "difficulty" measure for mining.
     ///
     /// Difficulty represents how difficult the current target makes it to find a block, relative to
@@ -130,15 +156,18 @@ impl fmt::Debug for Header {
             .field("time", &self.time)
             .field("bits", &self.bits)
             .field("nonce", &self.nonce)
+            .field("hash_state_root", &self.hash_state_root)
+            .field("hash_utxo_root", &self.hash_utxo_root)
+            .field("gas_used", &self.gas_used)
             .finish()
     }
 }
 
-/// Bitcoin block version number.
+/// Kaon block version number.
 ///
 /// Originally used as a protocol version, but repurposed for soft-fork signaling.
 ///
-/// The inner value is a signed integer in Bitcoin Core for historical reasons, if version bits is
+/// The inner value is a signed integer in Kaon Core for historical reasons, if version bits is
 /// being used the top three bits must be 001, this gives us a useful range of [0x20000000...0x3FFFFFFF].
 ///
 /// > When a block nVersion does not have top bits 001, it is treated as if all bits are 0 for the purposes of deployments.
@@ -157,7 +186,8 @@ impl Version {
     pub const ONE: Self = Self(1);
 
     /// BIP-34 Block v2.
-    pub const TWO: Self = Self(2);
+    /// Kaon Network uses version 8 for basic block
+    pub const TWO: Self = Self(8);
 
     /// BIP-9 compatible version number that does not signal for any softforks.
     pub const NO_SOFT_FORK_SIGNALLING: Self = Self(Self::USE_VERSION_BITS as i32);
@@ -172,13 +202,13 @@ impl Version {
 
     /// Creates a [`Version`] from a signed 32 bit integer value.
     ///
-    /// This is the data type used in consensus code in Bitcoin Core.
+    /// This is the data type used in consensus code in Kaon Core.
     #[inline]
     pub const fn from_consensus(v: i32) -> Self { Version(v) }
 
     /// Returns the inner `i32` value.
     ///
-    /// This is the data type used in consensus code in Bitcoin Core.
+    /// This is the data type used in consensus code in Kaon Core.
     pub fn to_consensus(self) -> i32 { self.0 }
 
     /// Checks whether the version number is signalling a soft fork at the given bit.
@@ -217,7 +247,7 @@ impl Decodable for Version {
     }
 }
 
-/// Bitcoin block.
+/// Bitcoin/Kaon block.
 ///
 /// A collection of transactions with an attached proof of work.
 ///
@@ -228,6 +258,7 @@ impl Decodable for Version {
 /// ### Bitcoin Core References
 ///
 /// * [CBlock definition](https://github.com/bitcoin/bitcoin/blob/345457b542b6a980ccfbc868af0970a6f91d1b82/src/primitives/block.h#L62)
+/// Actual Kaon code reference would be provided later.
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
@@ -237,6 +268,7 @@ pub struct Block {
     /// List of transactions contained in the block
     pub txdata: Vec<Transaction>,
 }
+// TODO: add fields
 
 impl_consensus_encoding!(Block, header, txdata);
 
@@ -338,7 +370,7 @@ impl Block {
     fn base_size(&self) -> usize {
         let mut size = Header::SIZE;
 
-        size += VarInt::from(self.txdata.len()).size();
+        size += CompactSize::from(self.txdata.len()).size();
         size += self.txdata.iter().map(|tx| tx.base_size()).sum::<usize>();
 
         size
@@ -351,7 +383,7 @@ impl Block {
     pub fn total_size(&self) -> usize {
         let mut size = Header::SIZE;
 
-        size += VarInt::from(self.txdata.len()).size();
+        size += CompactSize::from(self.txdata.len()).size();
         size += self.txdata.iter().map(|tx| tx.total_size()).sum::<usize>();
 
         size
@@ -515,7 +547,7 @@ mod tests {
 
     #[test]
     fn block_test() {
-        let params = Params::new(Network::Bitcoin);
+        let params = Params::new(Network::Mainnet);
         // Mainnet block 00000000b0c5a240b2a61d2e75692224efd4cbecdf6eaf4cc2cf477ca7c270e7
         let some_block = hex!("010000004ddccd549d28f385ab457e98d1b11ce80bfea2c5ab93015ade4973e400000000bf4473e53794beae34e64fccc471dace6ae544180816f89591894e0f417a914cd74d6e49ffff001d323b3a7b0201000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0804ffff001d026e04ffffffff0100f2052a0100000043410446ef0102d1ec5240f0d061a4246c1bdef63fc3dbab7733052fbbf0ecd8f41fc26bf049ebb4f9527f374280259e7cfa99c48b0e3f39c51347a19a5819651503a5ac00000000010000000321f75f3139a013f50f315b23b0c9a2b6eac31e2bec98e5891c924664889942260000000049483045022100cb2c6b346a978ab8c61b18b5e9397755cbd17d6eb2fe0083ef32e067fa6c785a02206ce44e613f31d9a6b0517e46f3db1576e9812cc98d159bfdaf759a5014081b5c01ffffffff79cda0945903627c3da1f85fc95d0b8ee3e76ae0cfdc9a65d09744b1f8fc85430000000049483045022047957cdd957cfd0becd642f6b84d82f49b6cb4c51a91f49246908af7c3cfdf4a022100e96b46621f1bffcf5ea5982f88cef651e9354f5791602369bf5a82a6cd61a62501fffffffffe09f5fe3ffbf5ee97a54eb5e5069e9da6b4856ee86fc52938c2f979b0f38e82000000004847304402204165be9a4cbab8049e1af9723b96199bfd3e85f44c6b4c0177e3962686b26073022028f638da23fc003760861ad481ead4099312c60030d4cb57820ce4d33812a5ce01ffffffff01009d966b01000000434104ea1feff861b51fe3f5f8a3b12d0f4712db80e919548a80839fc47c6a21e66d957e9c5d8cd108c7a2d2324bad71f9904ac0ae7336507d785b17a2c115e427a32fac00000000");
         let cutoff_block = hex!("010000004ddccd549d28f385ab457e98d1b11ce80bfea2c5ab93015ade4973e400000000bf4473e53794beae34e64fccc471dace6ae544180816f89591894e0f417a914cd74d6e49ffff001d323b3a7b0201000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0804ffff001d026e04ffffffff0100f2052a0100000043410446ef0102d1ec5240f0d061a4246c1bdef63fc3dbab7733052fbbf0ecd8f41fc26bf049ebb4f9527f374280259e7cfa99c48b0e3f39c51347a19a5819651503a5ac00000000010000000321f75f3139a013f50f315b23b0c9a2b6eac31e2bec98e5891c924664889942260000000049483045022100cb2c6b346a978ab8c61b18b5e9397755cbd17d6eb2fe0083ef32e067fa6c785a02206ce44e613f31d9a6b0517e46f3db1576e9812cc98d159bfdaf759a5014081b5c01ffffffff79cda0945903627c3da1f85fc95d0b8ee3e76ae0cfdc9a65d09744b1f8fc85430000000049483045022047957cdd957cfd0becd642f6b84d82f49b6cb4c51a91f49246908af7c3cfdf4a022100e96b46621f1bffcf5ea5982f88cef651e9354f5791602369bf5a82a6cd61a62501fffffffffe09f5fe3ffbf5ee97a54eb5e5069e9da6b4856ee86fc52938c2f979b0f38e82000000004847304402204165be9a4cbab8049e1af9723b96199bfd3e85f44c6b4c0177e3962686b26073022028f638da23fc003760861ad481ead4099312c60030d4cb57820ce4d33812a5ce01ffffffff01009d966b01000000434104ea1feff861b51fe3f5f8a3b12d0f4712db80e919548a80839fc47c6a21e66d957e9c5d8cd108c7a2d2324bad71f9904ac0ae7336507d785b17a2c115e427a32fac");

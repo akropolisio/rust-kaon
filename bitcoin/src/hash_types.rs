@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin hash types.
+//! Bitcoin/Kaon hash types.
 //!
 //! This module is deprecated. You can find hash types in their respective, hopefully obvious, modules.
 
 #[deprecated(since = "0.0.0-NEXT-RELEASE", note = "use crate::T instead")]
 pub use crate::{
-    BlockHash, FilterHash, FilterHeader, TxMerkleNode, Txid, WitnessCommitment, WitnessMerkleNode,
+    BlockHash, BlockStateRoot, BlockUTXORoot, FilterHash, FilterHeader, TxMerkleNode, Txid, WitnessCommitment, WitnessMerkleNode,
     Wtxid,
 };
 
@@ -15,7 +15,7 @@ mod tests {
     use super::*;
     use crate::hashes::Hash;
     use crate::{
-        LegacySighash, PubkeyHash, ScriptHash, SegwitV0Sighash, TapSighash, WPubkeyHash,
+        LegacySighash, PubkeyHash, ScriptHash, SegwitV0Sighash, TapSighash, Txid, WPubkeyHash,
         WScriptHash, XKeyIdentifier,
     };
 

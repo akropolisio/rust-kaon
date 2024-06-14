@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! # Rust Bitcoin Library
+//! # Rust Kaon Library
 //!
-//! This is a library that supports the Bitcoin network protocol and associated
-//! primitives. It is designed for Rust programs built to work with the Bitcoin
+//! This is a library that supports the Kaon network protocol and associated
+//! primitives. It is designed for Rust programs built to work with the Kaon
 //! network.
 //!
 //! Except for its dependency on libsecp256k1 (and optionally libbitcoinconsensus),
@@ -45,7 +45,7 @@
 // Disable 16-bit support at least for now as we can't guarantee it yet.
 #[cfg(target_pointer_width = "16")]
 compile_error!(
-    "rust-bitcoin currently only supports architectures with pointers wider than 16 bits, let us
+    "rust-kaon currently only supports architectures with pointers wider than 16 bits, let us
     know if you want 16-bit support. Note that we do NOT guarantee that we will implement it!"
 );
 
@@ -59,7 +59,7 @@ extern crate alloc;
 /// Encodes and decodes base64 as bytes or utf8.
 pub extern crate base64;
 
-/// Bitcoin base58 encoding and decoding.
+/// Bitcoin/Kaon base58 encoding and decoding.
 pub extern crate base58;
 
 /// Rust implementation of cryptographic hash function algorithms.
@@ -68,7 +68,7 @@ pub extern crate hashes;
 /// Re-export the `hex-conservative` crate.
 pub extern crate hex;
 
-/// Re-export the `bitcoin-io` crate.
+/// Re-export the `kaon-io` crate.
 pub extern crate io;
 
 /// Re-export the `ordered` crate.
@@ -116,7 +116,7 @@ pub use crate::{
     amount::{Amount, Denomination, SignedAmount},
     bip158::{FilterHash, FilterHeader},
     bip32::XKeyIdentifier,
-    blockdata::block::{self, Block, BlockHash, TxMerkleNode, WitnessMerkleNode, WitnessCommitment},
+    blockdata::block::{self, Block, BlockHash, TxMerkleNode, BlockStateRoot, BlockUTXORoot, WitnessMerkleNode, WitnessCommitment},
     blockdata::constants,
     blockdata::fee_rate::FeeRate,
     blockdata::locktime::{self, absolute, relative},
@@ -127,7 +127,7 @@ pub use crate::{
     blockdata::transaction::{self, OutPoint, Sequence, Transaction, TxIn, TxOut, Txid, Wtxid},
     blockdata::weight::Weight,
     blockdata::witness::{self, Witness},
-    consensus::encode::VarInt,
+    consensus::encode::{VarInt, CompactSize},
     consensus::params,
     crypto::ecdsa,
     crypto::key::{self, PrivateKey, PubkeyHash, PublicKey, CompressedPublicKey, WPubkeyHash, XOnlyPublicKey},
@@ -165,7 +165,7 @@ mod prelude {
 }
 
 pub mod amount {
-    //! Bitcoin amounts.
+    //! Bitcoin/Kaon amounts.
     //!
     //! This module mainly introduces the [Amount] and [SignedAmount] types.
     //! We refer to the documentation on the types for more information.
@@ -184,14 +184,14 @@ pub mod amount {
     impl Decodable for Amount {
         #[inline]
         fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
-            Ok(Amount::from_sat(Decodable::consensus_decode(r)?))
+            Ok(Amount::from_sat(encode::VarInt128::consensus_decode(r)?.0))
         }
     }
 
     impl Encodable for Amount {
         #[inline]
         fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
-            self.to_sat().consensus_encode(w)
+            encode::VarInt128::from(self.to_sat()).consensus_encode(w)
         }
     }
 }
