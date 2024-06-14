@@ -9,9 +9,10 @@ use core::borrow::Borrow;
 use core::{fmt, ops};
 
 pub use into_iter::IntoIter;
-use io::Write;
+use io::{BufRead, Write};
 
 use super::{SigFromSliceError, Signature};
+use crate::consensus::{encode, Decodable, Encodable};
 
 pub(crate) const MAX_LEN: usize = 65; // 64 for sig, 1B sighash flag
 
@@ -20,6 +21,18 @@ pub(crate) const MAX_LEN: usize = 65; // 64 for sig, 1B sighash flag
 pub struct SerializedSignature {
     data: [u8; MAX_LEN],
     len: usize,
+}
+
+impl Encodable for SerializedSignature {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+        w.write(&self)
+    }
+}
+
+impl Decodable for SerializedSignature {
+    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+        SerializedSignature::consensus_decode_from_finite_reader(r)
+    }
 }
 
 impl fmt::Debug for SerializedSignature {
@@ -169,6 +182,10 @@ impl SerializedSignature {
     pub fn write_to<W: Write + ?Sized>(&self, writer: &mut W) -> Result<(), io::Error> {
         writer.write_all(self)
     }
+}
+
+impl Default for SerializedSignature {
+    fn default() -> SerializedSignature { SerializedSignature { data: [0u8; MAX_LEN], len: 0 } }
 }
 
 /// Separate mod to prevent outside code from accidentally breaking invariants.
