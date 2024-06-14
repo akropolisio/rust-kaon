@@ -12,7 +12,7 @@ use hashes::{sha256, siphash24, Hash};
 use internals::impl_array_newtype;
 use io::{BufRead, Write};
 
-use crate::consensus::encode::{self, Decodable, Encodable, VarInt};
+use crate::consensus::encode::{self, CompactSize, Decodable, Encodable, VarInt};
 use crate::internal_macros::{impl_array_newtype_stringify, impl_consensus_encoding};
 use crate::prelude::*;
 use crate::{block, Block, BlockHash, Transaction};
@@ -75,14 +75,14 @@ impl convert::AsRef<Transaction> for PrefilledTransaction {
 impl Encodable for PrefilledTransaction {
     #[inline]
     fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
-        Ok(VarInt::from(self.idx).consensus_encode(w)? + self.tx.consensus_encode(w)?)
+        Ok(CompactSize::from(self.idx).consensus_encode(w)? + self.tx.consensus_encode(w)?)
     }
 }
 
 impl Decodable for PrefilledTransaction {
     #[inline]
     fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
-        let idx = VarInt::consensus_decode(r)?.0;
+        let idx = CompactSize::consensus_decode(r)?.0;
         let idx = u16::try_from(idx)
             .map_err(|_| encode::Error::ParseFailed("BIP152 prefilled tx index out of bounds"))?;
         let tx = Transaction::consensus_decode(r)?;
@@ -261,11 +261,11 @@ impl Encodable for BlockTransactionsRequest {
     /// contains an entry with the value [`u64::MAX`] as `u64` overflows during differential encoding.
     fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         let mut len = self.block_hash.consensus_encode(w)?;
-        // Manually encode indexes because they are differentially encoded VarInts.
-        len += VarInt(self.indexes.len() as u64).consensus_encode(w)?;
+        // Manually encode indexes because they are differentially encoded CompactSizes.
+        len += CompactSize(self.indexes.len() as u64).consensus_encode(w)?;
         let mut last_idx = 0;
         for idx in &self.indexes {
-            len += VarInt(*idx - last_idx).consensus_encode(w)?;
+            len += CompactSize(*idx - last_idx).consensus_encode(w)?;
             last_idx = *idx + 1; // can panic here
         }
         Ok(len)
@@ -277,8 +277,8 @@ impl Decodable for BlockTransactionsRequest {
         Ok(BlockTransactionsRequest {
             block_hash: BlockHash::consensus_decode(r)?,
             indexes: {
-                // Manually decode indexes because they are differentially encoded VarInts.
-                let nb_indexes = VarInt::consensus_decode(r)?.0 as usize;
+                // Manually decode indexes because they are differentially encoded CompactSizes.
+                let nb_indexes = CompactSizes::consensus_decode(r)?.0 as usize;
 
                 // Since the number of indices ultimately represent transactions,
                 // we can limit the number of indices to the maximum number of
@@ -296,7 +296,7 @@ impl Decodable for BlockTransactionsRequest {
                 let mut indexes = Vec::with_capacity(nb_indexes);
                 let mut last_index: u64 = 0;
                 for _ in 0..nb_indexes {
-                    let differential: VarInt = Decodable::consensus_decode(r)?;
+                    let differential: CompactSizes = Decodable::consensus_decode(r)?;
                     last_index = match last_index.checked_add(differential.0) {
                         Some(i) => i,
                         None => return Err(encode::Error::ParseFailed("block index overflow")),
@@ -374,7 +374,7 @@ mod test {
     use hex::FromHex;
 
     use super::*;
-    use crate::blockdata::block::TxMerkleNode;
+    use crate::blockdata::block::{BlockStateRoot, BlockUTXORoot, TxMerkleNode};
     use crate::blockdata::locktime::absolute;
     use crate::blockdata::transaction;
     use crate::consensus::encode::{deserialize, serialize};
@@ -390,7 +390,10 @@ mod test {
                 sequence: Sequence(1),
                 witness: Witness::new(),
             }],
-            output: vec![TxOut { value: Amount::ONE_SAT, script_pubkey: ScriptBuf::new() }],
+            output: vec![TxOut { value: Amount::ONE_AKAON, script_pubkey: ScriptBuf::new() }],
+            validator_register: vec![],
+            validator_vote: vec![],
+            gas_price: Amount::ZERO,
         }
     }
 
@@ -403,6 +406,9 @@ mod test {
                 time: 2,
                 bits: CompactTarget::from_consensus(3),
                 nonce: 4,
+                hash_state_root: BlockStateRoot::hash(&[0]),
+                hash_utxo_root: BlockUTXORoot::hash(&[0]),
+                gas_used: Amount::ZERO,
             },
             txdata: vec![dummy_tx(&[2]), dummy_tx(&[3]), dummy_tx(&[4])],
         }
@@ -445,16 +451,16 @@ mod test {
     #[test]
     fn test_getblocktx_differential_encoding_de_and_serialization() {
         let testcases = vec![
-            // differentially encoded VarInts, indicies
+            // differentially encoded CompactSizes, indicies
             (vec![4, 0, 5, 1, 10], vec![0, 6, 8, 19]),
             (vec![1, 0], vec![0]),
             (vec![5, 0, 0, 0, 0, 0], vec![0, 1, 2, 3, 4]),
             (vec![3, 1, 1, 1], vec![1, 3, 5]),
-            (vec![3, 0, 0, 253, 0, 1], vec![0, 1, 258]), // .., 253, 0, 1] == VarInt(256)
+            (vec![3, 0, 0, 253, 0, 1], vec![0, 1, 258]), // .., 253, 0, 1] == CompactSize(256)
         ];
         let deser_errorcases = vec![
-            vec![2, 255, 254, 255, 255, 255, 255, 255, 255, 255, 0], // .., 255, 254, .., 255] == VarInt(u64::MAX-1)
-            vec![1, 255, 255, 255, 255, 255, 255, 255, 255, 255], // .., 255, 255, .., 255] == VarInt(u64::MAX)
+            vec![2, 255, 254, 255, 255, 255, 255, 255, 255, 255, 0], // .., 255, 254, .., 255] == CompactSize(u64::MAX-1)
+            vec![1, 255, 255, 255, 255, 255, 255, 255, 255, 255], // .., 255, 255, .., 255] == CompactSize(u64::MAX)
         ];
         for testcase in testcases {
             {

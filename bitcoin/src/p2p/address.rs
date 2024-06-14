@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin network addresses.
+//! Bitcoin/Kaon network addresses.
 //!
 //! This module defines the structures and functions needed to encode
-//! network addresses in Bitcoin messages.
+//! network addresses in Bitcoin/Kaon messages.
 
 use core::{fmt, iter};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6, ToSocketAddrs};
 
 use io::{BufRead, Read, Write};
 
-use crate::consensus::encode::{self, Decodable, Encodable, ReadExt, VarInt, WriteExt};
+use crate::consensus::encode::{self, CompactSize, Decodable, Encodable, ReadExt, WriteExt};
 use crate::p2p::ServiceFlags;
 
-/// A message which can be sent on the Bitcoin network
+/// A message which can be sent on the Bitcoin/Kaon network
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Address {
     /// Services provided by the peer whose address this is
@@ -147,7 +147,7 @@ impl Encodable for AddrV2 {
             bytes: &[u8],
         ) -> Result<usize, io::Error> {
             let len = network.consensus_encode(w)?
-                + VarInt::from(bytes.len()).consensus_encode(w)?
+                + CompactSize::from(bytes.len()).consensus_encode(w)?
                 + bytes.len();
             w.emit_slice(bytes)?;
             Ok(len)
@@ -167,7 +167,7 @@ impl Encodable for AddrV2 {
 impl Decodable for AddrV2 {
     fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
         let network_id = u8::consensus_decode(r)?;
-        let len = VarInt::consensus_decode(r)?.0;
+        let len = CompactSize::consensus_decode(r)?.0;
         if len > 512 {
             return Err(encode::Error::ParseFailed("IP must be <= 512 bytes"));
         }
@@ -272,7 +272,7 @@ impl Encodable for AddrV2Message {
     fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         let mut len = 0;
         len += self.time.consensus_encode(w)?;
-        len += VarInt(self.services.to_u64()).consensus_encode(w)?;
+        len += CompactSize(self.services.to_u64()).consensus_encode(w)?;
         len += self.addr.consensus_encode(w)?;
 
         w.write_all(&self.port.to_be_bytes())?;
@@ -286,7 +286,7 @@ impl Decodable for AddrV2Message {
     fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
         Ok(AddrV2Message {
             time: Decodable::consensus_decode(r)?,
-            services: ServiceFlags::from(VarInt::consensus_decode(r)?.0),
+            services: ServiceFlags::from(CompactSize::consensus_decode(r)?.0),
             addr: Decodable::consensus_decode(r)?,
             port: u16::swap_bytes(Decodable::consensus_decode(r)?),
         })

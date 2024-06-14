@@ -12,18 +12,18 @@
 //! # Examples
 //!
 //! ```rust
-//! use bitcoin::hash_types::Txid;
-//! use bitcoin::hex::FromHex;
-//! use bitcoin::{Block, MerkleBlock};
+//! use kaon::hash_types::Txid;
+//! use kaon::hex::FromHex;
+//! use kaon::{Block, MerkleBlock};
 //!
-//! // Get the proof from a bitcoind by running in the terminal:
+//! // Get the proof from a kaond by running in the terminal:
 //! // $ TXID="5a4ebf66822b0b2d56bd9dc64ece0bc38ee7844a23ff1d7320a88c5fdb2ad3e2"
-//! // $ bitcoin-cli gettxoutproof [\"$TXID\"]
+//! // $ kaon-cli gettxoutproof [\"$TXID\"]
 //! let mb_bytes = Vec::from_hex("01000000ba8b9cda965dd8e536670f9ddec10e53aab14b20bacad27b913719\
 //!     0000000000190760b278fe7b8565fda3b968b918d5fd997f993b23674c0af3b6fde300b38f33a5914ce6ed5b\
 //!     1b01e32f570200000002252bf9d75c4f481ebb6278d708257d1f12beb6dd30301d26c623f789b2ba6fc0e2d3\
 //!     2adb5f8ca820731dff234a84e78ec30bce4ec69dbd562d0b2b8266bf4e5a0105").unwrap();
-//! let mb: MerkleBlock = bitcoin::consensus::deserialize(&mb_bytes).unwrap();
+//! let mb: MerkleBlock = kaon::consensus::deserialize(&mb_bytes).unwrap();
 //!
 //! // Authenticate and extract matched transaction ids
 //! let mut matches: Vec<Txid> = vec![];
@@ -71,9 +71,9 @@ impl MerkleBlock {
     /// # Examples
     ///
     /// ```rust
-    /// use bitcoin::hash_types::Txid;
-    /// use bitcoin::hex::FromHex;
-    /// use bitcoin::{Block, MerkleBlock};
+    /// use kaon::hash_types::Txid;
+    /// use kaon::hex::FromHex;
+    /// use kaon::{Block, MerkleBlock};
     ///
     /// // Block 80000
     /// let block_bytes = Vec::from_hex("01000000ba8b9cda965dd8e536670f9ddec10e53aab14b20bacad2\
@@ -86,7 +86,7 @@ impl MerkleBlock {
     ///     d3ee3738d9e1446618c4571d1090db022100e2ac980643b0b82c0e88ffdfec6b64e3e6ba35e7ba5fdd7d\
     ///     5d6cc8d25c6b241501ffffffff0100f2052a010000001976a914404371705fa9bd789a2fcd52d2c580b6\
     ///     5d35549d88ac00000000").unwrap();
-    /// let block: Block = bitcoin::consensus::deserialize(&block_bytes).unwrap();
+    /// let block: Block = kaon::consensus::deserialize(&block_bytes).unwrap();
     ///
     /// // Create a merkle block containing a single transaction
     /// let txid = "5a4ebf66822b0b2d56bd9dc64ece0bc38ee7844a23ff1d7320a88c5fdb2ad3e2".parse::<Txid>().unwrap();
@@ -187,9 +187,9 @@ impl Decodable for MerkleBlock {
 ///
 /// The serialization format:
 ///  - uint32     total_transactions (4 bytes)
-///  - varint     number of hashes   (1-3 bytes)
+///  - compactsize     number of hashes   (1-3 bytes)
 ///  - uint256[]  hashes in depth-first order (<= 32*N bytes)
-///  - varint     number of bytes of flag bits (1-3 bytes)
+///  - compactsize     number of bytes of flag bits (1-3 bytes)
 ///  - byte[]     flag bits, packed per 8 in a byte, least significant bit first (<= 2*N-1 bits)
 ///
 /// The size constraints follow from this.
@@ -224,9 +224,9 @@ impl PartialMerkleTree {
     /// # Examples
     ///
     /// ```rust
-    /// use bitcoin::hash_types::Txid;
-    /// use bitcoin::hex::FromHex;
-    /// use bitcoin::merkle_tree::{MerkleBlock, PartialMerkleTree};
+    /// use kaon::hash_types::Txid;
+    /// use kaon::hex::FromHex;
+    /// use kaon::merkle_tree::{MerkleBlock, PartialMerkleTree};
     ///
     /// // Block 80000
     /// let txids: Vec<Txid> = [
@@ -442,7 +442,7 @@ impl Encodable for PartialMerkleTree {
         ret += self.hashes.consensus_encode(w)?;
 
         let nb_bytes_for_bits = (self.bits.len() + 7) / 8;
-        ret += encode::VarInt::from(nb_bytes_for_bits).consensus_encode(w)?;
+        ret += encode::CompactSize::from(nb_bytes_for_bits).consensus_encode(w)?;
         for chunk in self.bits.chunks(8) {
             let mut byte = 0u8;
             for (i, bit) in chunk.iter().enumerate() {

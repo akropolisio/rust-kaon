@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin network messages.
+//! Bitcoin/Kaon network messages.
 //!
 //! This module defines the `NetworkMessage` and `RawNetworkMessage` types that
-//! are used for (de)serializing Bitcoin objects for transmission on the network.
+//! are used for (de)serializing Kaon objects for transmission on the network.
 
 use core::{fmt, iter};
 
@@ -11,7 +11,7 @@ use hashes::{sha256d, Hash};
 use io::{BufRead, Write};
 
 use crate::blockdata::{block, transaction};
-use crate::consensus::encode::{self, CheckedData, Decodable, Encodable, VarInt};
+use crate::consensus::encode::{self, CheckedData, CompactSize, Decodable, Encodable};
 use crate::merkle_tree::MerkleBlock;
 use crate::p2p::address::{AddrV2Message, Address};
 use crate::p2p::{
@@ -27,7 +27,7 @@ pub const MAX_INV_SIZE: usize = 50_000;
 
 /// Maximum size, in bytes, of an encoded message
 /// This by neccessity should be larger tham `MAX_VEC_SIZE`
-pub const MAX_MSG_SIZE: usize = 5_000_000;
+pub const MAX_MSG_SIZE: usize = 7_500_000;
 
 /// Serializer for command string
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -338,7 +338,7 @@ impl<'a> Encodable for HeaderSerializationWrapper<'a> {
     #[inline]
     fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         let mut len = 0;
-        len += VarInt::from(self.0.len()).consensus_encode(w)?;
+        len += CompactSize::from(self.0.len()).consensus_encode(w)?;
         for header in self.0.iter() {
             len += header.consensus_encode(w)?;
             len += 0u8.consensus_encode(w)?;
@@ -411,7 +411,7 @@ impl Decodable for HeaderDeserializationWrapper {
     fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
-        let len = VarInt::consensus_decode(r)?.0;
+        let len = CompactSize::consensus_decode(r)?.0;
         // should be above usual number of items to avoid
         // allocation
         let mut ret = Vec::with_capacity(core::cmp::min(1024 * 16, len as usize));
@@ -700,11 +700,12 @@ mod test {
         assert!(short_cs.is_err());
     }
 
+    // TODO: actualize
     #[test]
     #[rustfmt::skip]
     fn serialize_verack_test() {
-        assert_eq!(serialize(&RawNetworkMessage::new(Magic::BITCOIN, NetworkMessage::Verack)),
-                   vec![0xf9, 0xbe, 0xb4, 0xd9, 0x76, 0x65, 0x72, 0x61,
+        assert_eq!(serialize(&RawNetworkMessage::new(Magic::MAINNET, NetworkMessage::Verack)),
+                   vec![0x55, 0x6e, 0x69, 0x4d, 0x76, 0x65, 0x72, 0x61,
                         0x63, 0x6B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x5d, 0xf6, 0xe0, 0xe2]);
     }
@@ -712,8 +713,8 @@ mod test {
     #[test]
     #[rustfmt::skip]
     fn serialize_ping_test() {
-        assert_eq!(serialize(&RawNetworkMessage::new(Magic::BITCOIN, NetworkMessage::Ping(100))),
-                   vec![0xf9, 0xbe, 0xb4, 0xd9, 0x70, 0x69, 0x6e, 0x67,
+        assert_eq!(serialize(&RawNetworkMessage::new(Magic::MAINNET, NetworkMessage::Ping(100))),
+                   vec![0x55, 0x6e, 0x69, 0x4d, 0x70, 0x69, 0x6e, 0x67,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x08, 0x00, 0x00, 0x00, 0x24, 0x67, 0xf1, 0x1d,
                         0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
@@ -722,8 +723,8 @@ mod test {
     #[test]
     #[rustfmt::skip]
     fn serialize_mempool_test() {
-        assert_eq!(serialize(&RawNetworkMessage::new(Magic::BITCOIN, NetworkMessage::MemPool)),
-                   vec![0xf9, 0xbe, 0xb4, 0xd9, 0x6d, 0x65, 0x6d, 0x70,
+        assert_eq!(serialize(&RawNetworkMessage::new(Magic::MAINNET, NetworkMessage::MemPool)),
+                   vec![0x55, 0x6e, 0x69, 0x4d, 0x6d, 0x65, 0x6d, 0x70,
                         0x6f, 0x6f, 0x6c, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x5d, 0xf6, 0xe0, 0xe2]);
     }
@@ -731,8 +732,8 @@ mod test {
     #[test]
     #[rustfmt::skip]
     fn serialize_getaddr_test() {
-        assert_eq!(serialize(&RawNetworkMessage::new(Magic::BITCOIN, NetworkMessage::GetAddr)),
-                   vec![0xf9, 0xbe, 0xb4, 0xd9, 0x67, 0x65, 0x74, 0x61,
+        assert_eq!(serialize(&RawNetworkMessage::new(Magic::MAINNET, NetworkMessage::GetAddr)),
+                   vec![0x55, 0x6e, 0x69, 0x4d, 0x67, 0x65, 0x74, 0x61,
                         0x64, 0x64, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x5d, 0xf6, 0xe0, 0xe2]);
     }
@@ -741,11 +742,11 @@ mod test {
     fn deserialize_getaddr_test() {
         #[rustfmt::skip]
         let msg = deserialize(&[
-            0xf9, 0xbe, 0xb4, 0xd9, 0x67, 0x65, 0x74, 0x61,
+            0x55, 0x6e, 0x69, 0x4d, 0x67, 0x65, 0x74, 0x61,
             0x64, 0x64, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x5d, 0xf6, 0xe0, 0xe2
         ]);
-        let preimage = RawNetworkMessage::new(Magic::BITCOIN, NetworkMessage::GetAddr);
+        let preimage = RawNetworkMessage::new(Magic::MAINNET, NetworkMessage::GetAddr);
         assert!(msg.is_ok());
         let msg: RawNetworkMessage = msg.unwrap();
         assert_eq!(preimage.magic, msg.magic);
@@ -756,7 +757,7 @@ mod test {
     fn deserialize_version_test() {
         #[rustfmt::skip]
         let msg = deserialize::<RawNetworkMessage>(&[
-            0xf9, 0xbe, 0xb4, 0xd9, 0x76, 0x65, 0x72, 0x73,
+            0x55, 0x6e, 0x69, 0x4d, 0x76, 0x65, 0x72, 0x73,
             0x69, 0x6f, 0x6e, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x66, 0x00, 0x00, 0x00, 0xbe, 0x61, 0xb8, 0x27,
             0x7f, 0x11, 0x01, 0x00, 0x0d, 0x04, 0x00, 0x00,
@@ -776,9 +777,9 @@ mod test {
 
         assert!(msg.is_ok());
         let msg = msg.unwrap();
-        assert_eq!(msg.magic, Magic::BITCOIN);
+        assert_eq!(msg.magic, Magic::MAINNET);
         if let NetworkMessage::Version(version_msg) = msg.payload {
-            assert_eq!(version_msg.version, 70015);
+            assert_eq!(version_msg.version, 70918);
             assert_eq!(
                 version_msg.services,
                 ServiceFlags::NETWORK
@@ -789,7 +790,7 @@ mod test {
             assert_eq!(version_msg.timestamp, 1548554224);
             assert_eq!(version_msg.nonce, 13952548347456104954);
             assert_eq!(version_msg.user_agent, "/Satoshi:0.17.1/");
-            assert_eq!(version_msg.start_height, 560275);
+            assert_eq!(version_msg.start_height, 777);
             assert!(version_msg.relay);
         } else {
             panic!("Wrong message type");
@@ -800,7 +801,7 @@ mod test {
     fn deserialize_partial_message_test() {
         #[rustfmt::skip]
         let data = [
-            0xf9, 0xbe, 0xb4, 0xd9, 0x76, 0x65, 0x72, 0x73,
+            0x55, 0x6e, 0x69, 0x4d, 0x76, 0x65, 0x72, 0x73,
             0x69, 0x6f, 0x6e, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x66, 0x00, 0x00, 0x00, 0xbe, 0x61, 0xb8, 0x27,
             0x7f, 0x11, 0x01, 0x00, 0x0d, 0x04, 0x00, 0x00,
@@ -822,9 +823,9 @@ mod test {
 
         let (msg, consumed) = msg.unwrap();
         assert_eq!(consumed, data.to_vec().len() - 2);
-        assert_eq!(msg.magic, Magic::BITCOIN);
+        assert_eq!(msg.magic, Magic::MAINNET);
         if let NetworkMessage::Version(version_msg) = msg.payload {
-            assert_eq!(version_msg.version, 70015);
+            assert_eq!(version_msg.version, 70918);
             assert_eq!(
                 version_msg.services,
                 ServiceFlags::NETWORK
@@ -835,7 +836,7 @@ mod test {
             assert_eq!(version_msg.timestamp, 1548554224);
             assert_eq!(version_msg.nonce, 13952548347456104954);
             assert_eq!(version_msg.user_agent, "/Satoshi:0.17.1/");
-            assert_eq!(version_msg.start_height, 560275);
+            assert_eq!(version_msg.start_height, 777);
             assert!(version_msg.relay);
         } else {
             panic!("Wrong message type");

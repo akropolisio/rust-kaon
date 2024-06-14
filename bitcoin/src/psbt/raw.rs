@@ -11,7 +11,7 @@ use io::{BufRead, Write};
 
 use super::serialize::{Deserialize, Serialize};
 use crate::consensus::encode::{
-    self, deserialize, serialize, Decodable, Encodable, ReadExt, VarInt, WriteExt, MAX_VEC_SIZE,
+    self, deserialize, serialize, CompactSize, Decodable, Encodable, ReadExt, WriteExt, MAX_VEC_SIZE,
 };
 use crate::prelude::*;
 use crate::psbt::Error;
@@ -74,7 +74,7 @@ impl fmt::Display for Key {
 
 impl Key {
     pub(crate) fn decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, Error> {
-        let VarInt(byte_size): VarInt = Decodable::consensus_decode(r)?;
+        let CompactSize(byte_size): CompactSize = Decodable::consensus_decode(r)?;
 
         if byte_size == 0 {
             return Err(Error::NoMorePairs);
@@ -104,7 +104,7 @@ impl Key {
 impl Serialize for Key {
     fn serialize(&self) -> Vec<u8> {
         let mut buf = Vec::new();
-        VarInt::from(self.key.len() + 1)
+        CompactSize::from(self.key.len() + 1)
             .consensus_encode(&mut buf)
             .expect("in-memory writers don't error");
 

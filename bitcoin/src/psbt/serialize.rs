@@ -21,7 +21,7 @@ use crate::psbt::{Error, Psbt};
 use crate::taproot::{
     ControlBlock, LeafVersion, TapLeafHash, TapNodeHash, TapTree, TaprootBuilder,
 };
-use crate::VarInt;
+use crate::CompactSize;
 /// A trait for serializing a value as raw data for insertion into PSBT
 /// key-value maps.
 pub(crate) trait Serialize {
@@ -169,7 +169,7 @@ impl Deserialize for ecdsa::Signature {
         //
         // 2) This would cause to have invalid signatures because the sighash message
         // also has a field sighash_u32 (See BIP141). For example, when signing with non-standard
-        // 0x05, the sighash message would have the last field as 0x05u32 while, the verification
+        // 0x3C, the sighash message would have the last field as 0x3Cu32 while, the verification
         // would use check the signature assuming sighash_u32 as `0x01`.
         ecdsa::Signature::from_slice(bytes).map_err(|e| match e {
             ecdsa::Error::EmptySignature => Error::InvalidEcdsaSignature(e),
@@ -338,7 +338,7 @@ impl Serialize for TapTree {
         let capacity = self
             .script_leaves()
             .map(|l| {
-                l.script().len() + VarInt::from(l.script().len()).size() // script version
+                l.script().len() + CompactSize::from(l.script().len()).size() // script version
             + 1 // merkle branch
             + 1 // leaf version
             })

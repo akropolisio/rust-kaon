@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin Taproot.
+//! Bitcoin/Kaon Taproot.
 //!
 //! This module provides support for taproot tagged hashes.
 
@@ -333,10 +333,10 @@ impl From<&TaprootSpendInfo> for TapTweakHash {
 /// in a depth-first search (DFS) walk order to construct this tree.
 ///
 /// See Wikipedia for more details on [DFS](https://en.wikipedia.org/wiki/Depth-first_search).
-// Similar to Taproot Builder in Bitcoin Core.
+// Similar to Taproot Builder in Bitcoin/Kaon Core.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TaprootBuilder {
-    // The following doc-comment is from Bitcoin Core, but modified for Rust. It describes the
+    // The following doc-comment is from Bitcoin/Kaon Core, but modified for Rust. It describes the
     // current state of the builder for a given tree.
     //
     // For each level in the tree, one NodeInfo object may be present. Branch at index 0 is
@@ -1147,7 +1147,7 @@ impl ControlBlock {
     /// Serializes the control block.
     ///
     /// This would be required when using [`ControlBlock`] as a witness element while spending an
-    /// output via script path. This serialization does not include the [`crate::VarInt`] prefix that would
+    /// output via script path. This serialization does not include the [`crate::CompactSize`] prefix that would
     /// be applied when encoding this element as a witness.
     pub fn serialize(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(self.size());

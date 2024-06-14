@@ -47,7 +47,7 @@ use io::{BufRead, Write};
 use crate::blockdata::block::{Block, BlockHash};
 use crate::blockdata::script::Script;
 use crate::blockdata::transaction::OutPoint;
-use crate::consensus::encode::VarInt;
+use crate::consensus::encode::CompactSize;
 use crate::consensus::{Decodable, Encodable};
 use crate::internal_macros::impl_hashencode;
 use crate::prelude::*;
@@ -57,9 +57,9 @@ const P: u8 = 19;
 const M: u64 = 784931;
 
 hashes::hash_newtype! {
-    /// Filter hash, as defined in BIP-157.
+    /// Filter hash, as defined in BIP-157
     pub struct FilterHash(sha256d::Hash);
-    /// Filter header, as defined in BIP-157.
+    /// Filter header, as defined in BIP-157
     pub struct FilterHeader(sha256d::Hash);
 }
 
@@ -281,7 +281,7 @@ impl GcsFilterReader {
         I::Item: Borrow<[u8]>,
         R: BufRead + ?Sized,
     {
-        let n_elements: VarInt = Decodable::consensus_decode(reader).unwrap_or(VarInt(0));
+        let n_elements: CompactSize = Decodable::consensus_decode(reader).unwrap_or(CompactSize(0));
         // map hashes to [0, n_elements << grp]
         let nm = n_elements.0 * self.m;
         let mut mapped =
@@ -324,7 +324,7 @@ impl GcsFilterReader {
         I::Item: Borrow<[u8]>,
         R: BufRead + ?Sized,
     {
-        let n_elements: VarInt = Decodable::consensus_decode(reader).unwrap_or(VarInt(0));
+        let n_elements: CompactSize = Decodable::consensus_decode(reader).unwrap_or(CompactSize(0));
         // map hashes to [0, n_elements << grp]
         let nm = n_elements.0 * self.m;
         let mut mapped =
@@ -398,8 +398,8 @@ impl<'a, W: Write> GcsFilterWriter<'a, W> {
             .collect();
         mapped.sort_unstable();
 
-        // write number of elements as varint
-        let mut wrote = VarInt::from(mapped.len()).consensus_encode(self.writer)?;
+        // write number of elements as CompactSize
+        let mut wrote = CompactSize::from(mapped.len()).consensus_encode(self.writer)?;
 
         // write out deltas of sorted values into a Golonb-Rice coded bit stream
         let mut writer = BitStreamWriter::new(self.writer);
@@ -482,7 +482,7 @@ impl<'a, R: BufRead + ?Sized> BitStreamReader<'a, R> {
     /// # Examples
     ///
     /// ```
-    /// # use bitcoin::bip158::BitStreamReader;
+    /// # use kaon::bip158::BitStreamReader;
     /// # let data = vec![0xff];
     /// # let mut input = data.as_slice();
     /// let mut reader = BitStreamReader::new(&mut input); // input contains all 1's
@@ -506,7 +506,7 @@ impl<'a, R: BufRead + ?Sized> BitStreamReader<'a, R> {
             data <<= bits;
             data |= ((self.buffer[0] << self.offset) >> (8 - bits)) as u64;
             self.offset += bits;
-            nbits -= bits;
+            nbits -= bits;impl_bytes_newtype
         }
         Ok(data)
     }

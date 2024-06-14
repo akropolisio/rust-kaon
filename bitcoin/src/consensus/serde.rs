@@ -366,8 +366,9 @@ fn consensus_error_into_serde<E: serde::de::Error>(error: ConsensusError) -> E {
                 expected[0], expected[1], expected[2], expected[3]
             )),
         ),
-        ConsensusError::NonMinimalVarInt =>
+        ConsensusError::NonMinimalCompactSize =>
             E::custom(format_args!("compact size was not encoded minimally")),
+        ConsensusError::TooLargeVarInt => E::custom(format_args!("varint size is too large")),
         ConsensusError::ParseFailed(msg) => E::custom(msg),
         ConsensusError::UnsupportedSegwitFlag(flag) =>
             E::invalid_value(Unexpected::Unsigned(flag.into()), &"segwit version 1 flag"),
@@ -406,8 +407,8 @@ where
 ///
 /// ```
 /// # use actual_serde::{Serialize, Deserialize};
-/// use bitcoin::Transaction;
-/// use bitcoin::consensus;
+/// use kaon::Transaction;
+/// use kaon::consensus;
 ///
 /// #[derive(Serialize, Deserialize)]
 /// # #[serde(crate = "actual_serde")]

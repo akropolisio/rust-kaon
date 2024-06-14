@@ -14,9 +14,9 @@ use crate::consensus::{Decodable, Encodable, WriteExt};
 use crate::crypto::ecdsa;
 use crate::prelude::*;
 use crate::taproot::{self, TAPROOT_ANNEX_PREFIX};
-use crate::{Script, VarInt};
+use crate::{CompactSize, Script};
 
-/// The Witness is the data used to unlock bitcoin since the [segwit upgrade].
+/// The Witness is the data used to unlock Kaon since the [segwit upgrade].
 ///
 /// Can be logically seen as an array of bytestrings, i.e. `Vec<Vec<u8>>`, and it is serialized on the wire
 /// in that format. You can convert between this type and `Vec<Vec<u8>>` by using [`Witness::from_slice`]
@@ -28,13 +28,13 @@ use crate::{Script, VarInt};
 /// [segwit upgrade]: <https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki>
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Witness {
-    /// Contains the witness `Vec<Vec<u8>>` serialization without the initial varint indicating the
+    /// Contains the witness `Vec<Vec<u8>>` serialization without the initial compactsize indicating the
     /// number of elements (which is stored in `witness_elements`).
     content: Vec<u8>,
 
     /// The number of elements in the witness.
     ///
-    /// Stored separately (instead of as a VarInt in the initial part of content) so that methods
+    /// Stored separately (instead of as a CompactSize in the initial part of content) so that methods
     /// like [`Witness::push`] don't have to shift the entire array.
     witness_elements: usize,
 
@@ -78,7 +78,7 @@ fn fmt_debug(w: &Witness, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> 
                         }
                     }
                     None => {
-                        // This is possible because the varint is not part of the instruction (see Iter).
+                        // This is possible because the compactsize is not part of the instruction (see Iter).
                         write!(f, "[]")?;
                     }
                 }
@@ -124,7 +124,7 @@ pub struct Iter<'a> {
 
 impl Decodable for Witness {
     fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, Error> {
-        let witness_elements = VarInt::consensus_decode(r)?.0 as usize;
+        let witness_elements = CompactSize::consensus_decode(r)?.0 as usize;
         // Minimum size of witness element is 1 byte, so if the count is
         // greater than MAX_VEC_SIZE we must return an error.
         if witness_elements > MAX_VEC_SIZE {
@@ -146,16 +146,16 @@ impl Decodable for Witness {
             let mut content = vec![0u8; cursor + 128];
 
             for i in 0..witness_elements {
-                let element_size_varint = VarInt::consensus_decode(r)?;
-                let element_size_varint_len = element_size_varint.size();
-                let element_size = element_size_varint.0 as usize;
+                let element_size_compactsize = CompactSize::consensus_decode(r)?;
+                let element_size_compactsize_len = element_size_compactsize.size();
+                let element_size = element_size_compactsize.0 as usize;
                 let required_len = cursor
                     .checked_add(element_size)
                     .ok_or(self::Error::OversizedVectorAllocation {
                         requested: usize::MAX,
                         max: MAX_VEC_SIZE,
                     })?
-                    .checked_add(element_size_varint_len)
+                    .checked_add(element_size_compactsize_len)
                     .ok_or(self::Error::OversizedVectorAllocation {
                         requested: usize::MAX,
                         max: MAX_VEC_SIZE,
@@ -173,10 +173,10 @@ impl Decodable for Witness {
                 encode_cursor(&mut content, 0, i, cursor - witness_index_space);
 
                 resize_if_needed(&mut content, required_len);
-                element_size_varint.consensus_encode(
-                    &mut &mut content[cursor..cursor + element_size_varint_len],
+                element_size_compactsize.consensus_encode(
+                    &mut &mut content[cursor..cursor + element_size_compactsize_len],
                 )?;
-                cursor += element_size_varint_len;
+                cursor += element_size_compactsize_len;
                 r.read_exact(&mut content[cursor..cursor + element_size])?;
                 cursor += element_size;
             }
@@ -220,7 +220,7 @@ fn resize_if_needed(vec: &mut Vec<u8>, required_len: usize) {
 
 impl Encodable for Witness {
     fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
-        let len = VarInt::from(self.witness_elements);
+        let len = CompactSize::from(self.witness_elements);
         len.consensus_encode(w)?;
         let content_with_indices_len = self.content.len();
         let indices_size = self.witness_elements * 4;
@@ -263,18 +263,18 @@ impl Witness {
         let index_size = witness_elements * 4;
         let content_size = slice
             .iter()
-            .map(|elem| elem.as_ref().len() + VarInt::from(elem.as_ref().len()).size())
+            .map(|elem| elem.as_ref().len() + CompactSize::from(elem.as_ref().len()).size())
             .sum();
 
         let mut content = vec![0u8; content_size + index_size];
         let mut cursor = 0usize;
         for (i, elem) in slice.iter().enumerate() {
             encode_cursor(&mut content, content_size, i, cursor);
-            let elem_len_varint = VarInt::from(elem.as_ref().len());
-            elem_len_varint
-                .consensus_encode(&mut &mut content[cursor..cursor + elem_len_varint.size()])
+            let elem_len_compactsize = CompactSize::from(elem.as_ref().len());
+            elem_len_compactsize
+                .consensus_encode(&mut &mut content[cursor..cursor + elem_len_compactsize.size()])
                 .expect("writers on vec don't errors, space granted by content_size");
-            cursor += elem_len_varint.size();
+            cursor += elem_len_compactsize.size();
             content[cursor..cursor + elem.as_ref().len()].copy_from_slice(elem.as_ref());
             cursor += elem.as_ref().len();
         }
@@ -304,11 +304,11 @@ impl Witness {
     pub fn size(&self) -> usize {
         let mut size: usize = 0;
 
-        size += VarInt::from(self.witness_elements).size();
+        size += CompactSize::from(self.witness_elements).size();
         size += self
             .iter()
             .map(|witness_element| {
-                VarInt::from(witness_element.len()).size() + witness_element.len()
+                CompactSize::from(witness_element.len()).size() + witness_element.len()
             })
             .sum::<usize>();
 
@@ -331,9 +331,9 @@ impl Witness {
     fn push_slice(&mut self, new_element: &[u8]) {
         self.witness_elements += 1;
         let previous_content_end = self.indices_start;
-        let element_len_varint = VarInt::from(new_element.len());
+        let element_len_compactsize = CompactSize::from(new_element.len());
         let current_content_len = self.content.len();
-        let new_item_total_len = element_len_varint.size() + new_element.len();
+        let new_item_total_len = element_len_compactsize.size() + new_element.len();
         self.content.resize(current_content_len + new_item_total_len + 4, 0);
 
         self.content[previous_content_end..].rotate_right(new_item_total_len);
@@ -345,11 +345,12 @@ impl Witness {
             previous_content_end,
         );
 
-        let end_varint = previous_content_end + element_len_varint.size();
-        element_len_varint
-            .consensus_encode(&mut &mut self.content[previous_content_end..end_varint])
+        let end_compactsize = previous_content_end + element_len_compactsize.size();
+        element_len_compactsize
+            .consensus_encode(&mut &mut self.content[previous_content_end..end_compactsize])
             .expect("writers on vec don't error, space granted through previous resize");
-        self.content[end_varint..end_varint + new_element.len()].copy_from_slice(new_element);
+        self.content[end_compactsize..end_compactsize + new_element.len()]
+            .copy_from_slice(new_element);
     }
 
     /// Pushes, as a new element on the witness, an ECDSA signature.
@@ -360,9 +361,9 @@ impl Witness {
     }
 
     fn element_at(&self, index: usize) -> Option<&[u8]> {
-        let varint = VarInt::consensus_decode(&mut &self.content[index..]).ok()?;
-        let start = index + varint.size();
-        Some(&self.content[start..start + varint.0 as usize])
+        let compactsize = CompactSize::consensus_decode(&mut &self.content[index..]).ok()?;
+        let start = index + compactsize.size();
+        Some(&self.content[start..start + compactsize.0 as usize])
     }
 
     /// Returns the last element in the witness, if any.
@@ -429,9 +430,9 @@ impl<'a> Iterator for Iter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let index = decode_cursor(self.inner, self.indices_start, self.current_index)?;
-        let varint = VarInt::consensus_decode(&mut &self.inner[index..]).ok()?;
-        let start = index + varint.size();
-        let end = start + varint.0 as usize;
+        let compactsize = CompactSize::consensus_decode(&mut &self.inner[index..]).ok()?;
+        let start = index + compactsize.size();
+        let end = start + compactsize.0 as usize;
         let slice = &self.inner[start..end];
         self.current_index += 1;
         Some(slice)
