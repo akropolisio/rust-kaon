@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin transactions.
+//! Kaon transactions.
 //!
 //! A transaction describes a transfer of money. It consumes previously-unspent
 //! transaction outputs and produces new ones, satisfying the condition to spend
@@ -28,7 +28,11 @@ use crate::internal_macros::{impl_consensus_encoding, impl_hashencode};
 use crate::prelude::*;
 #[cfg(doc)]
 use crate::sighash::{EcdsaSighashType, TapSighashType};
-use crate::{Amount, SignedAmount, VarInt};
+use crate::taproot::serialized_signature::{self};
+use crate::taproot::Signature;
+use crate::{Amount, CompactSize, PublicKey, SignedAmount};
+#[rustfmt::skip]                // Keep public re-exports separate.
+pub use secp256k1::{constants};
 
 #[rustfmt::skip]                // Keep public re-exports separate.
 #[cfg(feature = "bitcoinconsensus")]
@@ -36,15 +40,15 @@ use crate::{Amount, SignedAmount, VarInt};
 pub use crate::consensus::validation::TxVerifyError;
 
 hashes::hash_newtype! {
-    /// A bitcoin transaction hash/transaction ID.
+    /// A Kaon transaction hash/transaction ID.
     ///
-    /// For compatibility with the existing Bitcoin infrastructure and historical and current
-    /// versions of the Bitcoin Core software itself, this and other [`sha256d::Hash`] types, are
+    /// For compatibility with the existing Kaon infrastructure and historical and current
+    /// versions of the Kaon Core software itself, this and other [`sha256d::Hash`] types, are
     /// serialized in reverse byte order when converted to a hex string via [`std::fmt::Display`]
     /// trait operations. See [`hashes::Hash::DISPLAY_BACKWARD`] for more details.
     pub struct Txid(sha256d::Hash);
 
-    /// A bitcoin witness transaction ID.
+    /// A Kaon witness transaction ID.
     pub struct Wtxid(sha256d::Hash);
 }
 impl_hashencode!(Txid);
@@ -57,9 +61,10 @@ const SEGWIT_FLAG: u8 = 0x01;
 
 /// A reference to a transaction output.
 ///
-/// ### Bitcoin Core References
+/// ### Kaon Core References
 ///
 /// * [COutPoint definition](https://github.com/bitcoin/bitcoin/blob/345457b542b6a980ccfbc868af0970a6f91d1b82/src/primitives/transaction.h#L26)
+/// Actual Kaon code reference would be provided later.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct OutPoint {
     /// The referenced transaction's txid.
@@ -89,9 +94,9 @@ impl OutPoint {
     /// # Examples
     ///
     /// ```rust
-    /// use bitcoin::consensus::params;
-    /// use bitcoin::constants::genesis_block;
-    /// use bitcoin::Network;
+    /// use kaon::consensus::params;
+    /// use kaon::constants::genesis_block;
+    /// use kaon::Network;
     ///
     /// let block = genesis_block(&params::MAINNET);
     /// let tx = &block.txdata[0];
@@ -194,15 +199,16 @@ impl core::str::FromStr for OutPoint {
     }
 }
 
-/// Bitcoin transaction input.
+/// Kaon transaction input.
 ///
 /// It contains the location of the previous transaction's output,
 /// that it spends and set of scripts that satisfy its spending
 /// conditions.
 ///
-/// ### Bitcoin Core References
+/// ### Kaon Core References
 ///
 /// * [CTxIn definition](https://github.com/bitcoin/bitcoin/blob/345457b542b6a980ccfbc868af0970a6f91d1b82/src/primitives/transaction.h#L65)
+/// Actual Kaon code reference would be provided later.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
@@ -251,7 +257,7 @@ impl TxIn {
     ///
     /// Keep in mind that when adding a TxIn to a transaction, the total weight of the transaction
     /// might increase more than `TxIn::legacy_weight`. This happens when the new input added causes
-    /// the input length `VarInt` to increase its encoding length.
+    /// the input length `CompactSize` to increase its encoding length.
     pub fn legacy_weight(&self) -> Weight {
         Weight::from_non_witness_data_size(self.base_size() as u64)
     }
@@ -260,11 +266,11 @@ impl TxIn {
     /// having at least one segwit input).
     ///
     /// This always takes into account the witness, even when empty, in which
-    /// case 1WU for the witness length varint (`00`) is included.
+    /// case 1WU for the witness length compactsize (`00`) is included.
     ///
     /// Keep in mind that when adding a TxIn to a transaction, the total weight of the transaction
     /// might increase more than `TxIn::segwit_weight`. This happens when:
-    /// - the new input added causes the input length `VarInt` to increase its encoding length
+    /// - the new input added causes the input length `CompactSize` to increase its encoding length
     /// - the new input is the first segwit input added - this will add an additional 2WU to the
     ///   transaction weight to take into account the segwit marker
     pub fn segwit_weight(&self) -> Weight {
@@ -278,7 +284,7 @@ impl TxIn {
     pub fn base_size(&self) -> usize {
         let mut size = OutPoint::SIZE;
 
-        size += VarInt::from(self.script_sig.len()).size();
+        size += CompactSize::from(self.script_sig.len()).size();
         size += self.script_sig.len();
 
         size + Sequence::SIZE
@@ -301,7 +307,7 @@ impl Default for TxIn {
     }
 }
 
-/// Bitcoin transaction input sequence number.
+/// Kaon transaction input sequence number.
 ///
 /// The sequence field is used for:
 /// - Indicating whether absolute lock-time (specified in `lock_time` field of [`Transaction`])
@@ -350,7 +356,7 @@ impl Sequence {
     /// BIP-68 relative lock time disable flag mask.
     const LOCK_TIME_DISABLE_FLAG_MASK: u32 = 0x80000000;
     /// BIP-68 relative lock time type flag mask.
-    const LOCK_TYPE_MASK: u32 = 0x00400000;
+    const LOCK_TYPE_MASK: u32 = 0x00400000; // TODO: update value
 
     /// Returns `true` if the sequence number enables absolute lock-time ([`Transaction::lock_time`]).
     #[inline]
@@ -422,7 +428,7 @@ impl Sequence {
     /// Creates a relative lock-time using time intervals where each interval is equivalent
     /// to 512 seconds.
     ///
-    /// Encoding finer granularity of time for relative lock-times is not supported in Bitcoin
+    /// Encoding finer granularity of time for relative lock-times is not supported in Kaon
     #[inline]
     pub fn from_512_second_intervals(intervals: u16) -> Self {
         Sequence(u32::from(intervals) | Sequence::LOCK_TYPE_MASK)
@@ -516,7 +522,7 @@ impl fmt::Debug for Sequence {
 
 units::impl_parse_str_from_int_infallible!(Sequence, u32, from_consensus);
 
-/// Bitcoin transaction output.
+/// Kaon transaction output.
 ///
 /// Defines new coins to be created as a result of the transaction,
 /// along with spending conditions ("script", aka "output script"),
@@ -527,6 +533,7 @@ units::impl_parse_str_from_int_infallible!(Sequence, u32, from_consensus);
 /// ### Bitcoin Core References
 ///
 /// * [CTxOut definition](https://github.com/bitcoin/bitcoin/blob/345457b542b6a980ccfbc868af0970a6f91d1b82/src/primitives/transaction.h#L148)
+/// Actual Kaon code reference would be provided later.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
@@ -546,7 +553,7 @@ impl TxOut {
     ///
     /// Keep in mind that when adding a [`TxOut`] to a [`Transaction`] the total weight of the
     /// transaction might increase more than `TxOut::weight`. This happens when the new output added
-    /// causes the output length `VarInt` to increase its encoding length.
+    /// causes the output length `CompactSize` to increase its encoding length.
     ///
     /// # Panics
     ///
@@ -560,13 +567,18 @@ impl TxOut {
     /// Returns the total number of bytes that this output contributes to a transaction.
     ///
     /// There is no difference between base size vs total size for outputs.
-    pub fn size(&self) -> usize { size_from_script_pubkey(&self.script_pubkey) }
+    pub fn size(&self) -> usize {
+        let mut len = 0;
+        len += self.value.consensus_encode(&mut sink()).unwrap();
+        len + size_from_script_pubkey(&self.script_pubkey)
+    }
 
     /// Creates a `TxOut` with given script and the smallest possible `value` that is **not** dust
     /// per current Core policy.
     ///
-    /// Dust depends on the -dustrelayfee value of the Bitcoin Core node you are broadcasting to.
-    /// This function uses the default value of 0.00003 BTC/kB (3 sat/vByte).
+    /// Dust depends on the -dustrelayfee value of the Kaon Core node you are broadcasting to.
+    /// This function uses the default value of 0.000000000000003 KAON/kB (300 akaon/vByte).
+    /// TODO: actualize values
     ///
     /// To use a custom value, use [`minimal_non_dust_custom`].
     ///
@@ -578,12 +590,13 @@ impl TxOut {
     /// Creates a `TxOut` with given script and the smallest possible `value` that is **not** dust
     /// per current Core policy.
     ///
-    /// Dust depends on the -dustrelayfee value of the Bitcoin Core node you are broadcasting to.
+    /// Dust depends on the -dustrelayfee value of the Kaon Core node you are broadcasting to.
     /// This function lets you set the fee rate used in dust calculation.
     ///
-    /// The current default value in Bitcoin Core (as of v26) is 3 sat/vByte.
+    /// The current default value in Kaon Core (as of v1) is 300 akaon/vByte.
+    /// TODO: actualize values
     ///
-    /// To use the default Bitcoin Core value, use [`minimal_non_dust`].
+    /// To use the default Kaon Core value, use [`minimal_non_dust`].
     ///
     /// [`minimal_non_dust`]: TxOut::minimal_non_dust
     pub fn minimal_non_dust_custom(script_pubkey: ScriptBuf, dust_relay_fee: FeeRate) -> Self {
@@ -594,10 +607,273 @@ impl TxOut {
 /// Returns the total number of bytes that this script pubkey would contribute to a transaction.
 fn size_from_script_pubkey(script_pubkey: &Script) -> usize {
     let len = script_pubkey.len();
-    Amount::SIZE + VarInt::from(len).size() + len
+    CompactSize::from(len).size() + len
 }
 
-/// Bitcoin transaction.
+/// A reference to a transaction validation register.
+///
+/// Actual Kaon code reference would be provided later.
+#[derive(Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
+pub struct ValidatorRegister {
+    /// Validator signature
+    pub vin: TxIn,
+    /// Key for the registration
+    pub public_key: PublicKey,
+    /// Time of the signature
+    pub time: u32,
+    /// Content of the signature
+    pub signature: Signature,
+}
+
+impl ValidatorRegister {
+    /// Creates a new [`ValidatorRegister`].
+    #[inline]
+    pub const fn new(
+        vin: TxIn,
+        public_key: PublicKey,
+        time: u32,
+        signature: Signature,
+    ) -> ValidatorRegister {
+        ValidatorRegister { vin, public_key, time, signature }
+    }
+
+    /// Creates a "null" `ValidatorRegister`.
+    ///
+    /// This value is used for coinbase transactions because they don't have any previous outputs.
+    #[inline]
+    pub fn null() -> ValidatorRegister {
+        ValidatorRegister {
+            vin: TxIn::default(),
+            public_key: PublicKey::default(),
+            time: 0,
+            signature: Signature::default(),
+        }
+    }
+
+    /// Checks if an `ValidatorRegister` is "null".
+    ///
+    /// ```
+    #[inline]
+    pub fn is_null(&self) -> bool { *self == ValidatorRegister::null() }
+
+    /// Returns the total number of bytes that this ValidatorRegister contributes to a transaction.
+    ///
+    /// There is no difference between base size vs total size for outputs.
+    pub fn size(&self) -> usize {
+        let mut size: usize = 4; // Serialized length of a u32 for the version number.
+        size += self.vin.total_size();
+        size += constants::PUBLIC_KEY_SIZE;
+        size += 4; // u32
+        size + serialized_signature::MAX_LEN
+    }
+}
+
+impl Default for ValidatorRegister {
+    fn default() -> Self { ValidatorRegister::null() }
+}
+
+/// Masternode vote record
+///
+/// Actual Kaon code reference would be provided later.
+#[derive(Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
+pub struct MNVote {
+    /// Validator signature
+    pub vin: TxIn,
+    /// Key for the registration
+    pub vote: u32,
+}
+
+impl MNVote {
+    /// Creates a new [`MNVote`].
+    #[inline]
+    pub const fn new(vin: TxIn, vote: u32) -> MNVote { MNVote { vin, vote } }
+
+    /// Creates a "null" `MNVote`.
+    ///
+    /// This value is used for coinbase transactions because they don't have any previous outputs.
+    #[inline]
+    pub fn null() -> MNVote { MNVote { vin: TxIn::default(), vote: 0 } }
+
+    /// Checks if an `MNVote` is "null".
+    ///
+    /// ```
+    #[inline]
+    pub fn is_null(&self) -> bool { *self == MNVote::null() }
+
+    /// Returns the total number of bytes that this MNVote contributes to a transaction.
+    ///
+    /// There is no difference between base size vs total size for outputs.
+    pub fn size(&self) -> usize {
+        let mut size: usize = 4; // Serialized length of a u32 for the version number.
+        size += self.vin.total_size();
+        size + 4 // u32
+    }
+}
+
+impl Default for MNVote {
+    fn default() -> Self { MNVote::null() }
+}
+
+/// A reference to a transaction vote from validator record
+///
+/// Actual Kaon code reference would be provided later.
+#[derive(Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
+pub struct ValidatorVote {
+    /// Validator signature
+    pub vin: TxIn,
+    /// Key for the registration
+    pub public_key: PublicKey,
+    /// Time of the signature
+    pub time: u32,
+    /// Array of masternodes' votes
+    pub votes: Vec<MNVote>,
+    /// Content of the signature
+    pub signature: Signature,
+}
+
+impl ValidatorVote {
+    /// Creates a new [`ValidatorVote`].
+    #[inline]
+    pub const fn new(
+        vin: TxIn,
+        public_key: PublicKey,
+        time: u32,
+        votes: Vec<MNVote>,
+        signature: Signature,
+    ) -> ValidatorVote {
+        ValidatorVote { vin, public_key, time, votes, signature }
+    }
+
+    /// Creates a "null" `ValidatorVote`.
+    ///
+    /// This value is used for coinbase transactions because they don't have any previous outputs.
+    #[inline]
+    pub fn null() -> ValidatorVote {
+        ValidatorVote {
+            vin: TxIn::default(),
+            public_key: PublicKey::default(),
+            time: 0,
+            votes: vec![MNVote::default()],
+            signature: Signature::default(),
+        }
+    }
+
+    /// Checks if an `ValidatorVote` is "null".
+    ///
+    /// ```
+    #[inline]
+    pub fn is_null(&self) -> bool { *self == ValidatorVote::null() }
+
+    /// Returns the total number of bytes that this ValidatorVote contributes to a transaction.
+    ///
+    /// There is no difference between base size vs total size for outputs.
+    pub fn size(&self) -> usize {
+        let mut size: usize = 4; // Serialized length of a u32 for the version number.
+        size += self.vin.total_size();
+        size += constants::PUBLIC_KEY_SIZE;
+        size += 4; // u32
+        size += CompactSize::from(self.votes.len()).size();
+        size += self.votes.iter().map(|vote| vote.size()).sum::<usize>();
+        size + serialized_signature::MAX_LEN
+    }
+}
+
+impl Default for ValidatorVote {
+    fn default() -> Self { ValidatorVote::null() }
+}
+
+impl Encodable for ValidatorRegister {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += self.vin.consensus_encode(w)?;
+        len += self.public_key.consensus_encode(w)?;
+        len += self.time.consensus_encode(w)?;
+        len += self.signature.consensus_encode(w)?;
+        Ok(len)
+    }
+}
+
+impl Decodable for ValidatorRegister {
+    #[inline]
+    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+        r: &mut R,
+    ) -> Result<Self, encode::Error> {
+        Ok(ValidatorRegister {
+            vin: TxIn::consensus_decode_from_finite_reader(r)?,
+            public_key: PublicKey::consensus_decode_from_finite_reader(r)?,
+            time: u32::consensus_decode_from_finite_reader(r)?,
+            signature: Signature::consensus_decode_from_finite_reader(r)?,
+        })
+    }
+}
+
+impl fmt::Display for ValidatorRegister {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { fmt::Display::fmt(&self, f) }
+}
+
+impl Encodable for MNVote {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += self.vin.consensus_encode(w)?;
+        len += self.vote.consensus_encode(w)?;
+        Ok(len)
+    }
+}
+
+impl Decodable for MNVote {
+    #[inline]
+    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+        r: &mut R,
+    ) -> Result<Self, encode::Error> {
+        Ok(MNVote {
+            vin: TxIn::consensus_decode_from_finite_reader(r)?,
+            vote: u32::consensus_decode_from_finite_reader(r)?,
+        })
+    }
+}
+
+impl fmt::Display for MNVote {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { fmt::Display::fmt(&self, f) }
+}
+
+impl Encodable for ValidatorVote {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += self.vin.consensus_encode(w)?;
+        len += self.public_key.consensus_encode(w)?;
+        len += self.time.consensus_encode(w)?;
+        len += self.votes.consensus_encode(w)?;
+        len += self.signature.consensus_encode(w)?;
+        Ok(len)
+    }
+}
+
+impl Decodable for ValidatorVote {
+    #[inline]
+    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+        r: &mut R,
+    ) -> Result<Self, encode::Error> {
+        Ok(ValidatorVote {
+            vin: TxIn::consensus_decode_from_finite_reader(r)?,
+            public_key: PublicKey::consensus_decode_from_finite_reader(r)?,
+            time: u32::consensus_decode_from_finite_reader(r)?,
+            votes: Vec::<MNVote>::consensus_decode_from_finite_reader(r)?,
+            signature: Signature::consensus_decode_from_finite_reader(r)?,
+        })
+    }
+}
+
+impl fmt::Display for ValidatorVote {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { fmt::Display::fmt(&self, f) }
+}
+
+/// Kaon transaction.
 ///
 /// An authenticated movement of coins.
 ///
@@ -608,6 +884,7 @@ fn size_from_script_pubkey(script_pubkey: &Script) -> usize {
 /// ### Bitcoin Core References
 ///
 /// * [CTtransaction definition](https://github.com/bitcoin/bitcoin/blob/345457b542b6a980ccfbc868af0970a6f91d1b82/src/primitives/transaction.h#L279)
+/// Actual Kaon code reference would be provided later.
 ///
 /// ### Serialization notes
 ///
@@ -656,7 +933,7 @@ fn size_from_script_pubkey(script_pubkey: &Script) -> usize {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct Transaction {
-    /// The protocol version, is currently expected to be 1 or 2 (BIP 68).
+    /// The protocol version, is currently expected to be 2. Although genesis transaction has version 1.
     pub version: Version,
     /// Block height or timestamp. Transaction cannot be included in a block until this height/time.
     ///
@@ -669,6 +946,15 @@ pub struct Transaction {
     pub input: Vec<TxIn>,
     /// List of transaction outputs.
     pub output: Vec<TxOut>,
+
+    // Here vector is used as a wrapping object, that can be empty,
+    // if transaction doesn't contain ValidatorRegister or ValidatorVote
+    /// Collection of registers voted for the transaction
+    pub validator_register: Vec<ValidatorRegister>,
+    /// Collection of registers' votes for the transaction
+    pub validator_vote: Vec<ValidatorVote>,
+    /// Gas price that was active at the transaction initiation moment, only after genesis trx
+    pub gas_price: Amount,
 }
 
 impl cmp::PartialOrd for Transaction {
@@ -681,12 +967,16 @@ impl cmp::Ord for Transaction {
             .then(self.lock_time.to_consensus_u32().cmp(&other.lock_time.to_consensus_u32()))
             .then(self.input.cmp(&other.input))
             .then(self.output.cmp(&other.output))
+            .then(self.validator_register.cmp(&other.validator_register))
+            .then(self.validator_vote.cmp(&other.validator_vote))
+            .then(self.gas_price.cmp(&other.gas_price))
     }
 }
 
 impl Transaction {
     // https://github.com/bitcoin/bitcoin/blob/44b05bf3fef2468783dcebf651654fdd30717e7e/src/policy/policy.h#L27
-    /// Maximum transaction weight for Bitcoin Core 25.0.
+    // Actual Kaon code reference would be provided later.
+    /// Maximum transaction weight for Kaon Core 1.1.
     pub const MAX_STANDARD_WEIGHT: Weight = Weight::from_wu(400_000);
 
     /// Computes a "normalized TXID" which does not include any signatures.
@@ -717,6 +1007,9 @@ impl Transaction {
                 })
                 .collect(),
             output: self.output.clone(),
+            validator_register: self.validator_register.clone(),
+            validator_vote: self.validator_vote.clone(),
+            gas_price: self.gas_price,
         };
         cloned_tx.compute_txid().into()
     }
@@ -742,6 +1035,9 @@ impl Transaction {
         self.input.consensus_encode(&mut enc).expect("engines don't error");
         self.output.consensus_encode(&mut enc).expect("engines don't error");
         self.lock_time.consensus_encode(&mut enc).expect("engines don't error");
+        self.validator_register.consensus_encode(&mut enc).expect("engines don't error");
+        self.validator_vote.consensus_encode(&mut enc).expect("engines don't error");
+        self.gas_price.consensus_encode(&mut enc).expect("engines don't error");
         Txid::from_engine(enc)
     }
 
@@ -797,13 +1093,26 @@ impl Transaction {
     pub fn base_size(&self) -> usize {
         let mut size: usize = 4; // Serialized length of a u32 for the version number.
 
-        size += VarInt::from(self.input.len()).size();
+        size += CompactSize::from(self.input.len()).size();
         size += self.input.iter().map(|input| input.base_size()).sum::<usize>();
 
-        size += VarInt::from(self.output.len()).size();
+        size += CompactSize::from(self.output.len()).size();
         size += self.output.iter().map(|output| output.size()).sum::<usize>();
 
-        size + absolute::LockTime::SIZE
+        size += absolute::LockTime::SIZE;
+
+        size += CompactSize::from(self.validator_register.len()).size();
+        size += self
+            .validator_register
+            .iter()
+            .map(|validator_register| validator_register.size())
+            .sum::<usize>();
+
+        size += CompactSize::from(self.validator_vote.len()).size();
+        size +=
+            self.validator_vote.iter().map(|validator_vote| validator_vote.size()).sum::<usize>();
+
+        size + self.gas_price.consensus_encode(&mut sink()).unwrap()
     }
 
     /// Returns the total transaction size.
@@ -819,23 +1128,36 @@ impl Transaction {
             size += 2; // 1 byte for the marker and 1 for the flag.
         }
 
-        size += VarInt::from(self.input.len()).size();
+        size += CompactSize::from(self.input.len()).size();
         size += self
             .input
             .iter()
             .map(|input| if uses_segwit { input.total_size() } else { input.base_size() })
             .sum::<usize>();
 
-        size += VarInt::from(self.output.len()).size();
+        size += CompactSize::from(self.output.len()).size();
         size += self.output.iter().map(|output| output.size()).sum::<usize>();
 
-        size + absolute::LockTime::SIZE
+        size += absolute::LockTime::SIZE;
+
+        size += CompactSize::from(self.validator_register.len()).size();
+        size += self
+            .validator_register
+            .iter()
+            .map(|validator_register| validator_register.size())
+            .sum::<usize>();
+
+        size += CompactSize::from(self.validator_vote.len()).size();
+        size +=
+            self.validator_vote.iter().map(|validator_vote| validator_vote.size()).sum::<usize>();
+
+        size + self.gas_price.consensus_encode(&mut sink()).unwrap()
     }
 
     /// Returns the "virtual size" (vsize) of this transaction.
     ///
     /// Will be `ceil(weight / 4.0)`. Note this implements the virtual size as per [`BIP141`], which
-    /// is different to what is implemented in Bitcoin Core. The computation should be the same for
+    /// is different to what is implemented in Kaon Core. The computation should be the same for
     /// any remotely sane transaction, and a standardness-rule-correct version is available in the
     /// [`policy`] module.
     ///
@@ -859,6 +1181,8 @@ impl Transaction {
     pub fn is_coinbase(&self) -> bool {
         self.input.len() == 1 && self.input[0].previous_output.is_null()
     }
+    // TODO: Kaon uses coinstake transactions and they are in a position 1 typically.
+    // Add support for them.
 
     /// Returns `true` if the transaction itself opted in to be BIP-125-replaceable (RBF).
     ///
@@ -1121,8 +1445,8 @@ impl Version {
     /// The original Bitcoin transaction version (pre-BIP-68).
     pub const ONE: Self = Self(1);
 
-    /// The second Bitcoin transaction version (post-BIP-68).
-    pub const TWO: Self = Self(2);
+    /// The second Kaon transaction version (post-BIP-68).
+    pub const TWO: Self = Self(2); // TODO: version 4
 
     /// Creates a non-standard transaction version.
     pub fn non_standard(version: i32) -> Version { Self(version) }
@@ -1248,6 +1572,11 @@ impl Decodable for Transaction {
                             input,
                             output,
                             lock_time: Decodable::consensus_decode_from_finite_reader(r)?,
+                            validator_register:
+                                Vec::<ValidatorRegister>::consensus_decode_from_finite_reader(r)?,
+                            validator_vote:
+                                Vec::<ValidatorVote>::consensus_decode_from_finite_reader(r)?,
+                            gas_price: Amount::consensus_decode_from_finite_reader(r)?,
                         })
                     }
                 }
@@ -1256,12 +1585,28 @@ impl Decodable for Transaction {
             }
         // non-segwit
         } else {
-            Ok(Transaction {
-                version,
-                input,
-                output: Decodable::consensus_decode_from_finite_reader(r)?,
-                lock_time: Decodable::consensus_decode_from_finite_reader(r)?,
-            })
+            if version == Version::ONE {
+                Ok(Transaction {
+                    version,
+                    input,
+                    output: Decodable::consensus_decode_from_finite_reader(r)?,
+                    lock_time: Decodable::consensus_decode_from_finite_reader(r)?,
+                    validator_register: vec![],
+                    validator_vote: vec![],
+                    gas_price: Amount::ZERO,
+                })
+            } else {
+                Ok(Transaction {
+                    version,
+                    input,
+                    output: Decodable::consensus_decode_from_finite_reader(r)?,
+                    lock_time: Decodable::consensus_decode_from_finite_reader(r)?,
+                    validator_register:
+                        Vec::<ValidatorRegister>::consensus_decode_from_finite_reader(r)?,
+                    validator_vote: Vec::<ValidatorVote>::consensus_decode_from_finite_reader(r)?,
+                    gas_price: Amount::consensus_decode_from_finite_reader(r)?,
+                })
+            }
         }
     }
 }
@@ -1289,7 +1634,7 @@ impl From<&Transaction> for Wtxid {
 ///
 /// Note: the effective value of a [`Transaction`] may increase less than the effective value of
 /// a [`TxOut`] when adding another [`TxOut`] to the transaction.  This happens when the new
-/// [`TxOut`] added causes the output length `VarInt` to increase its encoding length.
+/// [`TxOut`] added causes the output length `CompactSize` to increase its encoding length.
 ///
 /// # Parameters
 ///
@@ -1374,11 +1719,11 @@ where
     // This fold() does two things:
     // 1) Counts the outputs and returns the sum as `output_count`.
     // 2) Sums the output script sizes and returns the sum as `output_scripts_size`.
-    //    script_len + the length of a VarInt struct that stores the value of script_len
+    //    script_len + the length of a CompactSize struct that stores the value of script_len
     let (output_count, output_scripts_size) = output_script_lens.into_iter().fold(
         (0, 0),
         |(output_count, total_scripts_size), script_len| {
-            let script_size = script_len + VarInt(script_len as u64).size();
+            let script_size = script_len + CompactSize(script_len as u64).size();
             (output_count + 1, total_scripts_size + script_size)
         },
     );
@@ -1407,9 +1752,9 @@ const fn predict_weight_internal(
     let non_input_size =
     // version:
         4 +
-    // count varints:
-        VarInt(input_count as u64).size() +
-        VarInt(output_count as u64).size() +
+    // count CompactSizes:
+        CompactSize(input_count as u64).size() +
+        CompactSize(output_count as u64).size() +
         output_size +
     // lock_time
         4;
@@ -1449,7 +1794,7 @@ pub const fn predict_weight_from_slices(
     i = 0;
     while i < output_script_lens.len() {
         let script_len = output_script_lens[i];
-        output_scripts_size += script_len + VarInt(script_len as u64).size();
+        output_scripts_size += script_len + CompactSize(script_len as u64).size();
         i += 1;
     }
 
@@ -1570,11 +1915,12 @@ impl InputWeightPrediction {
         let (count, total_size) =
             witness_element_lengths.into_iter().fold((0, 0), |(count, total_size), elem_len| {
                 let elem_len = *elem_len.borrow();
-                let elem_size = elem_len + VarInt(elem_len as u64).size();
+                let elem_size = elem_len + CompactSize(elem_len as u64).size();
                 (count + 1, total_size + elem_size)
             });
-        let witness_size = if count > 0 { total_size + VarInt(count as u64).size() } else { 0 };
-        let script_size = input_script_len + VarInt(input_script_len as u64).size();
+        let witness_size =
+            if count > 0 { total_size + CompactSize(count as u64).size() } else { 0 };
+        let script_size = input_script_len + CompactSize(input_script_len as u64).size();
 
         InputWeightPrediction { script_size, witness_size }
     }
@@ -1590,22 +1936,22 @@ impl InputWeightPrediction {
         // for loops not supported in const fn
         while i < witness_element_lengths.len() {
             let elem_len = witness_element_lengths[i];
-            let elem_size = elem_len + VarInt(elem_len as u64).size();
+            let elem_size = elem_len + CompactSize(elem_len as u64).size();
             total_size += elem_size;
             i += 1;
         }
         let witness_size = if !witness_element_lengths.is_empty() {
-            total_size + VarInt(witness_element_lengths.len() as u64).size()
+            total_size + CompactSize(witness_element_lengths.len() as u64).size()
         } else {
             0
         };
-        let script_size = input_script_len + VarInt(input_script_len as u64).size();
+        let script_size = input_script_len + CompactSize(input_script_len as u64).size();
 
         InputWeightPrediction { script_size, witness_size }
     }
 
     /// Tallies the total weight added to a transaction by an input with this weight prediction,
-    /// not counting potential witness flag bytes or the witness count varint.
+    /// not counting potential witness flag bytes or the witness count compactsize.
     pub const fn weight(&self) -> Weight {
         Weight::from_wu_usize(self.script_size * 4 + self.witness_size)
     }
@@ -1732,7 +2078,7 @@ mod tests {
         use crate::blockdata::constants;
         use crate::network::Network;
 
-        let genesis = constants::genesis_block(Network::Bitcoin);
+        let genesis = constants::genesis_block(Network::Mainnet);
         assert!(genesis.txdata[0].is_coinbase());
         let tx_bytes = hex!("0100000001a15d57094aa7a21a28cb20b59aab8fc7d1149a3bdbcddba9c622e4f5f6a99ece010000006c493046022100f93bb0e7d8db7bd46e40132d1f8242026e045f03a0efe71bbb8e3f475e970d790221009337cd7f1f929f00cc6ff01f03729b069a7c21b59b1736ddfee5db5946c5da8c0121033b9b137ee87d5a812d6f506efdd37f0affa7ffc310711c06c7f3e097c9447c52ffffffff0100e1f505000000001976a9140389035a9225b3839e2bbf32d826a1e222031fd888ac00000000");
         let tx: Transaction = deserialize(&tx_bytes).unwrap();
@@ -1749,7 +2095,7 @@ mod tests {
         // will also fail. But these will show you where the failure is so I'll leave them in.
         assert_eq!(realtx.version, Version::ONE);
         assert_eq!(realtx.input.len(), 1);
-        // In particular this one is easy to get backward -- in bitcoin hashes are encoded
+        // In particular this one is easy to get backward -- in Kaon hashes are encoded
         // as little-endian 256-bit numbers rather than as data strings.
         assert_eq!(
             format!("{:x}", realtx.input[0].previous_output.txid),
@@ -1797,7 +2143,7 @@ mod tests {
         // will also fail. But these will show you where the failure is so I'll leave them in.
         assert_eq!(realtx.version, Version::TWO);
         assert_eq!(realtx.input.len(), 1);
-        // In particular this one is easy to get backward -- in bitcoin hashes are encoded
+        // In particular this one is easy to get backward -- in Kaon hashes are encoded
         // as little-endian 256-bit numbers rather than as data strings.
         assert_eq!(
             format!("{:x}", realtx.input[0].previous_output.txid),
@@ -1851,13 +2197,13 @@ mod tests {
 
     #[test]
     fn transaction_version() {
-        let tx_bytes = hex!("ffffff7f0100000000000000000000000000000000000000000000000000000000000000000000000000ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000");
+        let tx_bytes = hex!("ffffff7f0100000000000000000000000000000000000000000000000000000000000000000000000000ffffffff0100f2052a01000000434104c10e83b2703ccf322f7dbd62dd5855ac7c10bd055814ce121ba32607d573b8810c02c0582aed05b4deb9c4b77b26d92428c61256cd42774babea0a073b2ed0c9ac00000000");
         let tx: Result<Transaction, _> = deserialize(&tx_bytes);
         assert!(tx.is_ok());
         let realtx = tx.unwrap();
         assert_eq!(realtx.version, Version::non_standard(2147483647));
 
-        let tx2_bytes = hex!("000000800100000000000000000000000000000000000000000000000000000000000000000000000000ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000");
+        let tx2_bytes = hex!("000000800100000000000000000000000000000000000000000000000000000000000000000000000000ffffffff0100f2052a01000000434104c10e83b2703ccf322f7dbd62dd5855ac7c10bd055814ce121ba32607d573b8810c02c0582aed05b4deb9c4b77b26d92428c61256cd42774babea0a073b2ed0c9ac00000000");
         let tx2: Result<Transaction, _> = deserialize(&tx2_bytes);
         assert!(tx2.is_ok());
         let realtx2 = tx2.unwrap();
@@ -2147,7 +2493,7 @@ mod tests {
 
     #[test]
     fn effective_value_happy_path() {
-        let value = Amount::from_str("1 cBTC").unwrap();
+        let value = Amount::from_str("1 cKAON").unwrap();
         let fee_rate = FeeRate::from_sat_per_kwu(10);
         let satisfaction_weight = Weight::from_wu(204);
         let effective_value = effective_value(fee_rate, satisfaction_weight, value).unwrap();
@@ -2199,6 +2545,9 @@ mod tests {
             lock_time: absolute::LockTime::ZERO,
             input: vec![],
             output: vec![],
+            validator_register: vec![],
+            validator_vote: vec![],
+            gas_price: Amount::ZERO,
         }
         .weight();
 
@@ -2425,6 +2774,7 @@ mod tests {
         println!("{:?}", seq)
     }
 
+    // TODO: update for VarInt and u128
     #[test]
     fn outpoint_format() {
         let outpoint = OutPoint::default();

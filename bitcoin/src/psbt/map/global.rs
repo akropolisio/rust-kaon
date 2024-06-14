@@ -98,6 +98,11 @@ impl Psbt {
                                         input: Decodable::consensus_decode(&mut decoder)?,
                                         output: Decodable::consensus_decode(&mut decoder)?,
                                         lock_time: Decodable::consensus_decode(&mut decoder)?,
+                                        validator_register: Decodable::consensus_decode(
+                                            &mut decoder,
+                                        )?,
+                                        validator_vote: Decodable::consensus_decode(&mut decoder)?,
+                                        gas_price: Decodable::consensus_decode(&mut decoder)?,
                                     });
 
                                     if decoder.position() != vlen as u64 {

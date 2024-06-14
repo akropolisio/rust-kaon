@@ -2,7 +2,7 @@
 //!
 //! For remaining types see: ./serde_opcodes.rs
 //!
-//! If you find a type defined in `rust-bitcoin` that implements `Serialize` and does _not_ have a
+//! If you find a type defined in `rust-kaon` that implements `Serialize` and does _not_ have a
 //! regression test please add it.
 //!
 //! Types/tests were found using, and are ordered by, the output of: `git grep -l Serialize`.
@@ -26,17 +26,17 @@ use std::collections::BTreeMap;
 use std::str::FromStr;
 
 use bincode::serialize;
-use bitcoin::bip32::{ChildNumber, KeySource, Xpriv, Xpub};
-use bitcoin::blockdata::locktime::{absolute, relative};
-use bitcoin::blockdata::witness::Witness;
-use bitcoin::consensus::encode::deserialize;
-use bitcoin::hashes::{hash160, ripemd160, sha256, sha256d, Hash};
-use bitcoin::hex::FromHex;
-use bitcoin::psbt::raw::{self, Key, Pair, ProprietaryKey};
-use bitcoin::psbt::{Input, Output, Psbt, PsbtSighashType};
-use bitcoin::sighash::{EcdsaSighashType, TapSighashType};
-use bitcoin::taproot::{self, ControlBlock, LeafVersion, TapTree, TaprootBuilder};
-use bitcoin::{
+use kaon::bip32::{ChildNumber, KeySource, Xpriv, Xpub};
+use kaon::blockdata::locktime::{absolute, relative};
+use kaon::blockdata::witness::Witness;
+use kaon::consensus::encode::deserialize;
+use kaon::hashes::{hash160, ripemd160, sha256, sha256d, Hash};
+use kaon::hex::FromHex;
+use kaon::psbt::raw::{self, Key, Pair, ProprietaryKey};
+use kaon::psbt::{Input, Output, Psbt, PsbtSighashType};
+use kaon::sighash::{EcdsaSighashType, TapSighashType};
+use kaon::taproot::{self, ControlBlock, LeafVersion, TapTree, TaprootBuilder};
+use kaon::{
     ecdsa, transaction, Address, Amount, Block, NetworkKind, OutPoint, PrivateKey, PublicKey,
     ScriptBuf, Sequence, Target, Transaction, TxIn, TxOut, Txid, Work,
 };
@@ -242,6 +242,9 @@ fn serde_regression_psbt() {
             script_pubkey: ScriptBuf::from_hex("a914339725ba21efd62ac753a9bcd067d6c7a6a39d0587")
                 .unwrap(),
         }],
+        validator_register: vec![],
+        validator_vote: vec![],
+        gas_price: Amount::ZERO,
     };
     let unknown: BTreeMap<raw::Key, Vec<u8>> =
         vec![(raw::Key { type_value: 9, key: vec![0, 1] }, vec![3, 4, 5])].into_iter().collect();

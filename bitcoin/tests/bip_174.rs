@@ -4,15 +4,15 @@
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
-use bitcoin::bip32::{Fingerprint, IntoDerivationPath, KeySource, Xpriv, Xpub};
-use bitcoin::blockdata::opcodes::OP_0;
-use bitcoin::blockdata::{script, transaction};
-use bitcoin::consensus::encode::{deserialize, serialize_hex};
-use bitcoin::hex::FromHex;
-use bitcoin::psbt::{Psbt, PsbtSighashType};
-use bitcoin::script::PushBytes;
-use bitcoin::secp256k1::Secp256k1;
-use bitcoin::{
+use kaon::bip32::{Fingerprint, IntoDerivationPath, KeySource, Xpriv, Xpub};
+use kaon::blockdata::opcodes::OP_0;
+use kaon::blockdata::{script, transaction};
+use kaon::consensus::encode::{deserialize, serialize_hex};
+use kaon::hex::FromHex;
+use kaon::psbt::{Psbt, PsbtSighashType};
+use kaon::script::PushBytes;
+use kaon::secp256k1::Secp256k1;
+use kaon::{
     absolute, Amount, Denomination, NetworkKind, OutPoint, PrivateKey, PublicKey, ScriptBuf,
     Sequence, Transaction, TxIn, TxOut, Witness,
 };
@@ -181,18 +181,21 @@ fn create_transaction() -> Transaction {
         ],
         output: vec![
             TxOut {
-                value: Amount::from_str_in(output_0.amount, Denomination::Bitcoin)
+                value: Amount::from_str_in(output_0.amount, Denomination::Kaon)
                     .expect("failed to parse amount"),
                 script_pubkey: ScriptBuf::from_hex(output_0.script_pubkey)
                     .expect("failed to parse script"),
             },
             TxOut {
-                value: Amount::from_str_in(output_1.amount, Denomination::Bitcoin)
+                value: Amount::from_str_in(output_1.amount, Denomination::Kaon)
                     .expect("failed to parse amount"),
                 script_pubkey: ScriptBuf::from_hex(output_1.script_pubkey)
                     .expect("failed to parse script"),
             },
         ],
+        validator_register: vec![],
+        validator_vote: vec![],
+        gas_price: Amount::ZERO,
     }
 }
 
@@ -327,7 +330,7 @@ fn parse_and_verify_keys(
 
 /// Does the first signing according to the BIP, returns the signed PSBT. Verifies against BIP 174 test vector.
 #[track_caller]
-fn signer_one_sign(psbt: Psbt, key_map: BTreeMap<bitcoin::PublicKey, PrivateKey>) -> Psbt {
+fn signer_one_sign(psbt: Psbt, key_map: BTreeMap<kaon::PublicKey, PrivateKey>) -> Psbt {
     let expected_psbt_hex = include_str!("data/sign_1_psbt_hex");
     let expected_psbt: Psbt = hex_psbt(expected_psbt_hex);
 
@@ -339,7 +342,7 @@ fn signer_one_sign(psbt: Psbt, key_map: BTreeMap<bitcoin::PublicKey, PrivateKey>
 
 /// Does the second signing according to the BIP, returns the signed PSBT. Verifies against BIP 174 test vector.
 #[track_caller]
-fn signer_two_sign(psbt: Psbt, key_map: BTreeMap<bitcoin::PublicKey, PrivateKey>) -> Psbt {
+fn signer_two_sign(psbt: Psbt, key_map: BTreeMap<kaon::PublicKey, PrivateKey>) -> Psbt {
     let expected_psbt_hex = include_str!("data/sign_2_psbt_hex");
     let expected_psbt: Psbt = hex_psbt(expected_psbt_hex);
 
@@ -408,7 +411,7 @@ fn combine_lexicographically() {
 }
 
 /// Signs `psbt` with `keys` if required.
-fn sign(mut psbt: Psbt, keys: BTreeMap<bitcoin::PublicKey, PrivateKey>) -> Psbt {
+fn sign(mut psbt: Psbt, keys: BTreeMap<kaon::PublicKey, PrivateKey>) -> Psbt {
     let secp = Secp256k1::new();
     psbt.sign(&keys, &secp).unwrap();
     psbt

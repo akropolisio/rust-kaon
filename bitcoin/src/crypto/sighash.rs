@@ -411,7 +411,7 @@ impl EcdsaSighashType {
     pub fn from_consensus(n: u32) -> EcdsaSighashType {
         use EcdsaSighashType::*;
 
-        // In Bitcoin Core, the SignatureHash function will mask the (int32) value with
+        // In Bitcoin/Kaon Core, the SignatureHash function will mask the (int32) value with
         // 0x1f to (apparently) deactivate ACP when checking for SINGLE and NONE bits.
         // We however want to be matching also against on ACP-masked ALL, SINGLE, and NONE.
         // So here we re-activate ACP.
@@ -935,6 +935,9 @@ impl<R: Borrow<Transaction>> SighashCache<R> {
                 lock_time: self_.lock_time,
                 input: vec![],
                 output: vec![],
+                validator_register: vec![],
+                validator_vote: vec![],
+                gas_price: Amount::ZERO,
             };
             // Add all inputs necessary..
             if anyone_can_pay {
@@ -1121,8 +1124,8 @@ impl<R: BorrowMut<Transaction>> SighashCache<R> {
     ///
     /// For full signing code see the [`segwit v0`] and [`taproot`] signing examples.
     ///
-    /// [`segwit v0`]: <https://github.com/rust-bitcoin/rust-bitcoin/blob/master/bitcoin/examples/sign-tx-segwit-v0.rs>
-    /// [`taproot`]: <https://github.com/rust-bitcoin/rust-bitcoin/blob/master/bitcoin/examples/sign-tx-taproot.rs>
+    /// [`segwit v0`]: <https://github.com/akropolisio/rust-kaon/blob/master/bitcoin/examples/sign-tx-segwit-v0.rs>
+    /// [`taproot`]: <https://github.com/akropolisio/rust-kaon/blob/master/bitcoin/examples/sign-tx-taproot.rs>
     pub fn witness_mut(&mut self, input_index: usize) -> Option<&mut Witness> {
         self.tx.borrow_mut().input.get_mut(input_index).map(|i| &mut i.witness)
     }
@@ -1350,13 +1353,13 @@ impl<E> EncodeSigningDataResult<E> {
     /// the recommended pattern to handle this is:
     ///
     /// ```rust
-    /// # use bitcoin::consensus::deserialize;
-    /// # use bitcoin::hashes::{Hash, hex::FromHex};
-    /// # use bitcoin::sighash::{LegacySighash, SighashCache};
-    /// # use bitcoin::Transaction;
+    /// # use kaon::consensus::deserialize;
+    /// # use kaon::hashes::{Hash, hex::FromHex};
+    /// # use kaon::sighash::{LegacySighash, SighashCache};
+    /// # use kaon::Transaction;
     /// # let mut writer = LegacySighash::engine();
     /// # let input_index = 0;
-    /// # let script_pubkey = bitcoin::ScriptBuf::new();
+    /// # let script_pubkey = kaon::ScriptBuf::new();
     /// # let sighash_u32 = 0u32;
     /// # const SOME_TX: &'static str = "0100000001a15d57094aa7a21a28cb20b59aab8fc7d1149a3bdbcddba9c622e4f5f6a99ece010000006c493046022100f93bb0e7d8db7bd46e40132d1f8242026e045f03a0efe71bbb8e3f475e970d790221009337cd7f1f929f00cc6ff01f03729b069a7c21b59b1736ddfee5db5946c5da8c0121033b9b137ee87d5a812d6f506efdd37f0affa7ffc310711c06c7f3e097c9447c52ffffffff0100e1f505000000001976a9140389035a9225b3839e2bbf32d826a1e222031fd888ac00000000";
     /// # let raw_tx = Vec::from_hex(SOME_TX).unwrap();
@@ -1468,6 +1471,9 @@ mod tests {
             lock_time: absolute::LockTime::ZERO,
             input: vec![TxIn::default(), TxIn::default()],
             output: vec![TxOut::NULL],
+            validator_register: vec![],
+            validator_vote: vec![],
+            gas_price: Amount::ZERO,
         };
         let script = ScriptBuf::new();
         let cache = SighashCache::new(&tx);
@@ -1532,7 +1538,7 @@ mod tests {
 
     #[test]
     fn test_sighashes_keyspending() {
-        // following test case has been taken from Bitcoin Core test framework
+        // following test case has been taken from Bitcoin/Kaon Core test framework
 
         test_taproot_sighash(
             "020000000164eb050a5e3da0c2a65e4786f26d753b7bc69691fabccafb11f7acef36641f1846010000003101b2b404392a22000000000017a9147f2bde86fe78bf68a0544a4f290e12f0b7e0a08c87580200000000000017a91425d11723074ecfb96a0a83c3956bfaf362ae0c908758020000000000001600147e20f938993641de67bb0cdd71682aa34c4d29ad5802000000000000160014c64984dc8761acfa99418bd6bedc79b9287d652d72000000",
@@ -1657,6 +1663,9 @@ mod tests {
             lock_time: absolute::LockTime::ZERO,
             input: vec![TxIn::default()],
             output: vec![],
+            validator_register: vec![],
+            validator_vote: vec![],
+            gas_price: Amount::ZERO
         };
         let mut c = SighashCache::new(&dumb_tx);
 

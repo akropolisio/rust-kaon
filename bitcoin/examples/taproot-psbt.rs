@@ -1,17 +1,17 @@
 //! Example of taproot PSBT workflow
 
-// We use the alias `alias bt='bitcoin-cli -regtest'` for brevity.
+// We use the alias `alias bt='kaon-cli -regtest'` for brevity.
 
 // Step 0 - Wipe the `regtest` data directory to start from a clean slate.
 
-// Step 1 - Run `bitcoind -regtest -daemon` to start the daemon. Bitcoin Core 23.0+ is required.
+// Step 1 - Run `kaond -regtest -daemon` to start the daemon. Kaon Core 1.1+ is required.
 
 // Step 2 -
 //          2.1) Run `bt -named createwallet wallet_name=benefactor blank=true` to create a blank wallet with the name "benefactor"
 //          2.2) Run `bt -named createwallet wallet_name=beneficiary blank=true` to create a blank wallet with the name "beneficiary"
 //          2.3) Create the two aliases:
-//                  alias bt-benefactor='bitcoin-cli -regtest -rpcwallet=benefactor'
-//                  alias bt-beneficiary='bitcoin-cli -regtest -rpcwallet=beneficiary'
+//                  alias bt-benefactor='kaon-cli -regtest -rpcwallet=benefactor'
+//                  alias bt-beneficiary='kaon-cli -regtest -rpcwallet=beneficiary'
 //
 //          2.4) Import the example descriptors:
 //                  bt-benefactor importdescriptors '[
@@ -49,7 +49,7 @@ const UTXO_1: P2trUtxo = P2trUtxo {
     script_pubkey: UTXO_SCRIPT_PUBKEY,
     pubkey: UTXO_PUBKEY,
     master_fingerprint: UTXO_MASTER_FINGERPRINT,
-    amount_in_sats: Amount::from_int_btc(50),
+    amount_in_sats: Amount::from_int_kaon(50),
     derivation_path: BIP86_DERIVATION_PATH,
 };
 
@@ -60,7 +60,7 @@ const UTXO_2: P2trUtxo = P2trUtxo {
     script_pubkey: UTXO_SCRIPT_PUBKEY,
     pubkey: UTXO_PUBKEY,
     master_fingerprint: UTXO_MASTER_FINGERPRINT,
-    amount_in_sats: Amount::from_int_btc(50),
+    amount_in_sats: Amount::from_int_kaon(50),
     derivation_path: BIP86_DERIVATION_PATH,
 };
 
@@ -71,22 +71,23 @@ const UTXO_3: P2trUtxo = P2trUtxo {
     script_pubkey: UTXO_SCRIPT_PUBKEY,
     pubkey: UTXO_PUBKEY,
     master_fingerprint: UTXO_MASTER_FINGERPRINT,
-    amount_in_sats: Amount::from_int_btc(50),
+    amount_in_sats: Amount::from_int_kaon(50),
     derivation_path: BIP86_DERIVATION_PATH,
 };
 
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
-use bitcoin::bip32::{ChildNumber, DerivationPath, Fingerprint, Xpriv, Xpub};
-use bitcoin::consensus::encode;
-use bitcoin::key::{TapTweak, XOnlyPublicKey};
-use bitcoin::opcodes::all::{OP_CHECKSIG, OP_CLTV, OP_DROP};
-use bitcoin::psbt::{self, Input, Output, Psbt, PsbtSighashType};
-use bitcoin::secp256k1::Secp256k1;
-use bitcoin::sighash::{self, SighashCache, TapSighash, TapSighashType};
-use bitcoin::taproot::{self, LeafVersion, TapLeafHash, TaprootBuilder, TaprootSpendInfo};
-use bitcoin::{
+use kaon::bip32::{ChildNumber, DerivationPath, Fingerprint, Xpriv, Xpub};
+use kaon::consensus::encode;
+use kaon::hashes::Hash;
+use kaon::key::{TapTweak, XOnlyPublicKey};
+use kaon::opcodes::all::{OP_CHECKSIG, OP_CLTV, OP_DROP};
+use kaon::psbt::{self, Input, Output, Psbt, PsbtSighashType};
+use kaon::secp256k1::Secp256k1;
+use kaon::sighash::{self, SighashCache, TapSighash, TapSighashType};
+use kaon::taproot::{self, LeafVersion, TapLeafHash, TaprootBuilder, TaprootSpendInfo};
+use kaon::{
     absolute, script, transaction, Address, Amount, Network, OutPoint, ScriptBuf, Transaction,
     TxIn, TxOut, Witness,
 };
@@ -104,7 +105,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let change_address =
         Address::from_str("bcrt1pz449kexzydh2kaypatup5ultru3ej284t6eguhnkn6wkhswt0l7q3a7j76")?
             .require_network(Network::Regtest)?;
-    let amount_to_send_in_sats = Amount::ONE_BTC;
+    let amount_to_send_in_sats = Amount::ONE_KAON;
     let change_amount = UTXO_1
         .amount_in_sats
         .checked_sub(amount_to_send_in_sats)
@@ -234,10 +235,13 @@ fn generate_bip86_key_spend_tx(
         input: vec![TxIn {
             previous_output: OutPoint { txid: input_utxo.txid.parse()?, vout: input_utxo.vout },
             script_sig: ScriptBuf::new(),
-            sequence: bitcoin::Sequence(0xFFFFFFFF), // Ignore nSequence.
+            sequence: kaon::Sequence(0xFFFFFFFF), // Ignore nSequence.
             witness: Witness::default(),
         }],
         output: outputs,
+        validator_register: vec![],
+        validator_vote: vec![],
+        gas_price: Amount::ZERO,
     };
     let mut psbt = Psbt::from_unsigned_tx(tx1)?;
 
@@ -369,7 +373,7 @@ impl BenefactorWallet {
         beneficiary_key: XOnlyPublicKey,
     ) -> ScriptBuf {
         script::Builder::new()
-            .push_int(locktime.to_consensus_u32() as i64)
+            .push_int(locktime.to_consensus_u32() as i128)
             .push_opcode(OP_CLTV)
             .push_opcode(OP_DROP)
             .push_x_only_key(&beneficiary_key)
@@ -426,10 +430,13 @@ impl BenefactorWallet {
             input: vec![TxIn {
                 previous_output: OutPoint { txid: tx.compute_txid(), vout: 0 },
                 script_sig: ScriptBuf::new(),
-                sequence: bitcoin::Sequence(0xFFFFFFFD), // enable locktime and opt-in RBF
+                sequence: kaon::Sequence(0xFFFFFFFD), // enable locktime and opt-in RBF
                 witness: Witness::default(),
             }],
             output: vec![],
+            validator_register: vec![],
+            validator_vote: vec![],
+            gas_price: Amount::ZERO,
         };
         let mut next_psbt = Psbt::from_unsigned_tx(next_tx)?;
         let mut origins = BTreeMap::new();
@@ -569,10 +576,13 @@ impl BenefactorWallet {
                 input: vec![TxIn {
                     previous_output: OutPoint { txid: tx.compute_txid(), vout: 0 },
                     script_sig: ScriptBuf::new(),
-                    sequence: bitcoin::Sequence(0xFFFFFFFD), // enable locktime and opt-in RBF
+                    sequence: kaon::Sequence(0xFFFFFFFD), // enable locktime and opt-in RBF
                     witness: Witness::default(),
                 }],
                 output: vec![],
+                validator_register: vec![],
+                validator_vote: vec![],
+                gas_price: Amount::ZERO,
             };
             let mut next_psbt = Psbt::from_unsigned_tx(next_tx)?;
             let mut origins = BTreeMap::new();
@@ -711,7 +721,7 @@ impl BeneficiaryWallet {
 
 // Lifted and modified from BDK at https://github.com/bitcoindevkit/bdk/blob/8fbe40a9181cc9e22cabfc04d57dac5d459da87d/src/wallet/signer.rs#L469-L503
 
-// Bitcoin Dev Kit
+// Bitcoin/Kaon Dev Kit
 // Written in 2020 by Alekos Filini <alekos.filini@gmail.com>
 //
 // Copyright (c) 2020-2021 Bitcoin Dev Kit Developers

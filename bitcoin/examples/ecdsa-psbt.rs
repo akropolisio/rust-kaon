@@ -3,41 +3,41 @@
 //! The workflow we simulate is that of a setup using a watch-only online wallet (contains only
 //! public keys) and a cold-storage signing wallet (contains the private keys).
 //!
-//! You can verify the workflow using `bitcoind` and `bitcoin-cli`.
+//! You can verify the workflow using `kaond` and `kaon-cli`.
 //!
 //! ## Example Setup
 //!
-//! 1. Start Bitcoin Core in Regtest mode, for example:
+//! 1. Start Kaon Core in Regtest mode, for example:
 //!
-//!    `bitcoind -regtest -server -daemon -fallbackfee=0.0002 -rpcuser=admin -rpcpassword=pass -rpcallowip=127.0.0.1/0 -rpcbind=127.0.0.1 -blockfilterindex=1 -peerblockfilters=1`
+//!    `kaond -regtest -server -daemon -fallbackfee=0.0002 -rpcuser=admin -rpcpassword=pass -rpcallowip=127.0.0.1/0 -rpcbind=127.0.0.1 -blockfilterindex=1 -peerblockfilters=1`
 //!
-//! 2. Define a shell alias to `bitcoin-cli`, for example:
+//! 2. Define a shell alias to `kaon-cli`, for example:
 //!
-//!    `alias bt=bitcoin-cli -rpcuser=admin -rpcpassword=pass -rpcport=18443`
+//!    `alias bt=kaon-cli -rpcuser=admin -rpcpassword=pass -rpcport=18443`
 //!
 //! 3. Create (or load) a default wallet, for example:
 //!
-//!    `bt createwallet <wallet-name>`
+//!    `kt createwallet <wallet-name>`
 //!
 //! 4. Mine some blocks, for example:
 //!
-//!    `bt generatetoaddress 110 $(bt getnewaddress)`
+//!    `kt generatetoaddress 110 $(bt getnewaddress)`
 //!
 //! 5. Get the details for a UTXO to fund the PSBT with:
 //!
-//!    `bt listunspent`
+//!    `kt listunspent`
 //!
 
 use std::collections::BTreeMap;
 use std::fmt;
 use std::str::FromStr;
 
-use bitcoin::bip32::{ChildNumber, DerivationPath, Fingerprint, IntoDerivationPath, Xpriv, Xpub};
-use bitcoin::consensus::encode;
-use bitcoin::locktime::absolute;
-use bitcoin::psbt::{self, Input, Psbt, PsbtSighashType};
-use bitcoin::secp256k1::{Secp256k1, Signing, Verification};
-use bitcoin::{
+use kaon::bip32::{ChildNumber, DerivationPath, Fingerprint, IntoDerivationPath, Xpriv, Xpub};
+use kaon::consensus::encode;
+use kaon::locktime::absolute;
+use kaon::psbt::{self, Input, Psbt, PsbtSighashType};
+use kaon::secp256k1::{Secp256k1, Signing, Verification};
+use kaon::{
     transaction, Address, Amount, CompressedPublicKey, Network, OutPoint, ScriptBuf, Sequence,
     Transaction, TxIn, TxOut, Witness,
 };
@@ -51,7 +51,7 @@ const EXTENDED_MASTER_PRIVATE_KEY: &str = "tprv8ZgxMBicQKsPeSHZFZWT8zxie2dXWcwem
 const INPUT_UTXO_TXID: &str = "295f06639cde6039bf0c3dbf4827f0e3f2b2c2b476408e2f9af731a8d7a9c7fb";
 const INPUT_UTXO_VOUT: u32 = 0;
 const INPUT_UTXO_SCRIPT_PUBKEY: &str = "00149891eeb8891b3e80a2a1ade180f143add23bf5de";
-const INPUT_UTXO_VALUE: &str = "50 BTC";
+const INPUT_UTXO_VALUE: &str = "50 KAON";
 // Get this from the desciptor,
 // "wpkh([97f17dca/0'/0'/0']02749483607dafb30c66bd93ece4474be65745ce538c2d70e8e246f17e7a4e0c0c)#m9n56cx0".
 const INPUT_UTXO_DERIVATION_PATH: &str = "0h/0h/0h";
@@ -59,9 +59,9 @@ const INPUT_UTXO_DERIVATION_PATH: &str = "0h/0h/0h";
 // Grab an address to receive on: `bt generatenewaddress` (obviously contrived but works as an example).
 const RECEIVE_ADDRESS: &str = "bcrt1qcmnpjjjw78yhyjrxtql6lk7pzpujs3h244p7ae"; // The address to receive the coins we send.
 
-// These should be correct if the UTXO above should is for 50 BTC.
-const OUTPUT_AMOUNT_BTC: &str = "1 BTC";
-const CHANGE_AMOUNT_BTC: &str = "48.99999 BTC"; // 1000 sat transaction fee.
+// These should be correct if the UTXO above should is for 50 KAON.
+const OUTPUT_AMOUNT_KAON: &str = "1 KAON";
+const CHANGE_AMOUNT_KAON: &str = "48.99999 KAON"; // 1000 sat transaction fee.
 
 const NETWORK: Network = Network::Regtest;
 
@@ -162,10 +162,10 @@ struct WatchOnly {
 impl WatchOnly {
     /// Constructs a new watch-only wallet.
     ///
-    /// A watch-only wallet would typically be online and connected to the Bitcoin network. We
+    /// A watch-only wallet would typically be online and connected to the Kaon network. We
     /// 'import' into the wallet the `account_0_xpub` and `master_fingerprint`.
     ///
-    /// The reason for importing the `input_xpub` is so one can use bitcoind to grab a valid input
+    /// The reason for importing the `input_xpub` is so one can use kaond to grab a valid input
     /// to verify the workflow presented in this file.
     fn new(account_0_xpub: Xpub, input_xpub: Xpub, master_fingerprint: Fingerprint) -> Self {
         WatchOnly { account_0_xpub, input_xpub, master_fingerprint }
@@ -174,10 +174,10 @@ impl WatchOnly {
     /// Creates the PSBT, in BIP174 parlance this is the 'Creator'.
     fn create_psbt<C: Verification>(&self, secp: &Secp256k1<C>) -> Result<Psbt> {
         let to_address = Address::from_str(RECEIVE_ADDRESS)?.require_network(Network::Regtest)?;
-        let to_amount = Amount::from_str(OUTPUT_AMOUNT_BTC)?;
+        let to_amount = Amount::from_str(OUTPUT_AMOUNT_KAON)?;
 
         let (_, change_address, _) = self.change_address(secp)?;
-        let change_amount = Amount::from_str(CHANGE_AMOUNT_BTC)?;
+        let change_amount = Amount::from_str(CHANGE_AMOUNT_KAON)?;
 
         let tx = Transaction {
             version: transaction::Version::TWO,
@@ -192,6 +192,9 @@ impl WatchOnly {
                 TxOut { value: to_amount, script_pubkey: to_address.script_pubkey() },
                 TxOut { value: change_amount, script_pubkey: change_address.script_pubkey() },
             ],
+            validator_register: vec![], // TODO: add support
+            validator_vote: vec![],     // TODO: add support
+            gas_price: Amount::ZERO,    // TODO: add support
         };
 
         let psbt = Psbt::from_unsigned_tx(tx)?;

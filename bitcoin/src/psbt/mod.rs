@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Partially Signed Bitcoin Transactions.
+//! Partially Signed Bitcoin/Kaon Transactions.
 //!
-//! Implementation of BIP174 Partially Signed Bitcoin Transaction Format as
+//! Implementation of BIP174 Partially Signed Bitcoin/Kaon Transaction Format as
 //! defined at <https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki>
 //! except we define PSBTs containing non-standard sighash types as invalid.
 
@@ -127,6 +127,7 @@ impl Psbt {
     ///
     /// As of 2023, even the biggest overpayers during the highest fee markets only paid around
     /// 1000 sats/vByte. 25k sats/vByte is obviously a mistake at this point.
+    /// TODO: actualize
     ///
     /// [`extract_tx`]: Psbt::extract_tx
     pub const DEFAULT_MAX_FEE_RATE: FeeRate = FeeRate::from_sat_per_vb_unchecked(25_000);
@@ -205,7 +206,7 @@ impl Psbt {
 
         // Now that the extracted Transaction is made, decide how to return it.
         let fee_rate =
-            FeeRate::from_sat_per_kwu(fee.to_sat().saturating_mul(1000) / tx.weight().to_wu());
+            FeeRate::from_sat_per_kwu(fee.to_sat().saturating_mul(1000) / (tx.weight().to_wu() as u128));
         // Prefer to return an AbsurdFeeRate error when both trigger.
         if fee_rate > max_fee_rate {
             return Err(ExtractTxError::AbsurdFeeRate { fee_rate, tx });
@@ -709,11 +710,11 @@ impl Psbt {
     /// - [`Error::NegativeFee`] if calculated value is negative.
     /// - [`Error::FeeOverflow`] if an integer overflow occurs.
     pub fn fee(&self) -> Result<Amount, Error> {
-        let mut inputs: u64 = 0;
+        let mut inputs: u128 = 0;
         for utxo in self.iter_funding_utxos() {
             inputs = inputs.checked_add(utxo?.value.to_sat()).ok_or(Error::FeeOverflow)?;
         }
-        let mut outputs: u64 = 0;
+        let mut outputs: u128 = 0;
         for out in &self.unsigned_tx.output {
             outputs = outputs.checked_add(out.value.to_sat()).ok_or(Error::FeeOverflow)?;
         }
@@ -883,7 +884,7 @@ impl From<bip32::Error> for GetKeyError {
     fn from(e: bip32::Error) -> Self { GetKeyError::Bip32(e) }
 }
 
-/// The various output types supported by the Bitcoin network.
+/// The various output types supported by the Bitcoin/Kaon network.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub enum OutputType {
@@ -915,7 +916,7 @@ impl OutputType {
     }
 }
 
-/// Signing algorithms supported by the Bitcoin network.
+/// Signing algorithms supported by the Bitcoin/Kaon network.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SigningAlgorithm {
     /// The Elliptic Curve Digital Signature Algorithm (see [wikipedia]).
@@ -1229,7 +1230,7 @@ mod tests {
     }
 
     #[track_caller]
-    fn psbt_with_values(input: u64, output: u64) -> Psbt {
+    fn psbt_with_values(input: u128, output: u128) -> Psbt {
         Psbt {
             unsigned_tx: Transaction {
                 version: transaction::Version::TWO,
@@ -1252,6 +1253,9 @@ mod tests {
                     )
                     .unwrap(),
                 }],
+                validator_register: vec![],
+                validator_vote: vec![],
+                gas_price: Amount::ZERO,
             },
             xpub: Default::default(),
             version: 0,
@@ -1280,6 +1284,9 @@ mod tests {
                 lock_time: absolute::LockTime::ZERO,
                 input: vec![],
                 output: vec![],
+                validator_register: vec![],
+                validator_vote: vec![],
+                gas_price: Amount::ZERO,
             },
             xpub: Default::default(),
             version: 0,
@@ -1421,6 +1428,9 @@ mod tests {
                         .unwrap(),
                     },
                 ],
+                validator_register: vec![],
+                validator_vote: vec![],
+                gas_price: Amount::ZERO,
             },
             xpub: Default::default(),
             version: 0,
@@ -1486,6 +1496,9 @@ mod tests {
                 )
                 .unwrap(),
             }],
+            validator_register: vec![],
+            validator_vote: vec![],
+            gas_price: Amount::ZERO,
         };
         let unknown: BTreeMap<raw::Key, Vec<u8>> =
             vec![(raw::Key { type_value: 1, key: vec![0, 1] }, vec![3, 4, 5])]
@@ -1667,6 +1680,9 @@ mod tests {
                             script_pubkey: ScriptBuf::from_hex("a9143545e6e33b832c47050f24d3eeb93c9c03948bc787").unwrap(),
                         },
                     ],
+                    validator_register: vec![],
+                    validator_vote: vec![],
+                    gas_price: Amount::ZERO
                 },
                 xpub: Default::default(),
                 version: 0,
@@ -1714,6 +1730,9 @@ mod tests {
                                     script_pubkey: ScriptBuf::from_hex("a914339725ba21efd62ac753a9bcd067d6c7a6a39d0587").unwrap(),
                                 },
                             ],
+                            validator_register: vec![],
+                            validator_vote: vec![],
+                            gas_price: Amount::ZERO
                         }),
                         ..Default::default()
                     },
@@ -1999,6 +2018,9 @@ mod tests {
                         script_pubkey: ScriptBuf::from_hex("a9143545e6e33b832c47050f24d3eeb93c9c03948bc787").unwrap(),
                     },
                 ],
+                validator_register: vec![],
+                validator_vote: vec![],
+                gas_price: Amount::ZERO
             },
             version: 0,
             xpub: Default::default(),
@@ -2046,6 +2068,9 @@ mod tests {
                                 script_pubkey: ScriptBuf::from_hex("a914339725ba21efd62ac753a9bcd067d6c7a6a39d0587").unwrap(),
                             },
                         ],
+                        validator_register: vec![],
+                        validator_vote: vec![],
+                        gas_price: Amount::ZERO
                     }),
                     ..Default::default()
                 },
@@ -2167,6 +2192,9 @@ mod tests {
                         script_pubkey:  ScriptBuf::new()
                     },
                 ],
+                validator_register: vec![],
+                validator_vote: vec![],
+                gas_price: Amount::ZERO
             },
             xpub: Default::default(),
             version: 0,
@@ -2206,6 +2234,9 @@ mod tests {
                                 script_pubkey:  ScriptBuf::new()
                             },
                         ],
+                        validator_register: vec![],
+                        validator_vote: vec![],
+                        gas_price: Amount::ZERO
                     }),
                     ..Default::default()
                 },
@@ -2258,6 +2289,9 @@ mod tests {
             lock_time: absolute::LockTime::ZERO,
             input: vec![TxIn::default(), TxIn::default()],
             output: vec![TxOut::NULL],
+            validator_register: vec![],
+            validator_vote: vec![],
+            gas_price: Amount::ZERO,
         };
         let mut psbt = Psbt::from_unsigned_tx(unsigned_tx).unwrap();
 

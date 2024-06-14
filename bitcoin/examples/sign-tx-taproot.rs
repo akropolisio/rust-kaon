@@ -4,12 +4,12 @@
 
 use std::str::FromStr;
 
-use bitcoin::hashes::Hash;
-use bitcoin::key::{Keypair, TapTweak, TweakedKeypair, UntweakedPublicKey};
-use bitcoin::locktime::absolute;
-use bitcoin::secp256k1::{rand, Message, Secp256k1, SecretKey, Signing, Verification};
-use bitcoin::sighash::{Prevouts, SighashCache, TapSighashType};
-use bitcoin::{
+use kaon::hashes::Hash;
+use kaon::key::{Keypair, TapTweak, TweakedKeypair, UntweakedPublicKey};
+use kaon::locktime::absolute;
+use kaon::secp256k1::{rand, Message, Secp256k1, SecretKey, Signing, Verification};
+use kaon::sighash::{Prevouts, SighashCache, TapSighashType};
+use kaon::{
     transaction, Address, Amount, Network, OutPoint, ScriptBuf, Sequence, Transaction, TxIn, TxOut,
     Txid, Witness,
 };
@@ -55,6 +55,9 @@ fn main() {
         lock_time: absolute::LockTime::ZERO, // Ignore the locktime.
         input: vec![input],                  // Input goes into index 0.
         output: vec![spend, change],         // Outputs, order does not matter.
+        validator_register: vec![],          // TODO: add support
+        validator_vote: vec![],              // TODO: add support
+        gas_price: Amount::ZERO,             // TODO: add support
     };
     let input_index = 0;
 
@@ -69,13 +72,13 @@ fn main() {
         .taproot_key_spend_signature_hash(input_index, &prevouts, sighash_type)
         .expect("failed to construct sighash");
 
-    // Sign the sighash using the secp256k1 library (exported by rust-bitcoin).
+    // Sign the sighash using the secp256k1 library (exported by rust-kaon).
     let tweaked: TweakedKeypair = keypair.tap_tweak(&secp, None);
     let msg = Message::from(sighash);
     let signature = secp.sign_schnorr(&msg, &tweaked.to_inner());
 
     // Update the witness stack.
-    let signature = bitcoin::taproot::Signature { signature, sighash_type };
+    let signature = kaon::taproot::Signature { signature, sighash_type };
     *sighasher.witness_mut(input_index).unwrap() = Witness::p2tr_key_spend(&signature);
 
     // Get the signed transaction.
@@ -101,7 +104,7 @@ fn senders_keys<C: Signing>(secp: &Secp256k1<C>) -> Keypair {
 fn receivers_address() -> Address {
     Address::from_str("bc1p0dq0tzg2r780hldthn5mrznmpxsxc0jux5f20fwj0z3wqxxk6fpqm7q0va")
         .expect("a valid address")
-        .require_network(Network::Bitcoin)
+        .require_network(Network::Mainnet)
         .expect("valid address for mainnet")
 }
 
