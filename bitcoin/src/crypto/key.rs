@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin keys.
+//! Bitcoin/Kaon keys.
 //!
-//! This module provides keys used in Bitcoin that can be roundtrip
+//! This module provides keys used in Bitcoin/Kaon that can be roundtrip
 //! (de)serialized.
 
 use core::fmt::{self, Write as _};
@@ -13,9 +13,10 @@ use hashes::{hash160, Hash};
 use hex::{FromHex, HexToArrayError};
 use internals::array_vec::ArrayVec;
 use internals::write_err;
-use io::{Read, Write};
+use io::{BufRead, Read, Write};
 
 use crate::blockdata::script::ScriptBuf;
+use crate::consensus::{encode, Decodable, Encodable};
 use crate::crypto::ecdsa;
 use crate::internal_macros::impl_asref_push_bytes;
 use crate::network::NetworkKind;
@@ -28,7 +29,7 @@ pub use secp256k1::{constants, Keypair, Parity, Secp256k1, Verification, XOnlyPu
 #[cfg(feature = "rand-std")]
 pub use secp256k1::rand;
 
-/// A Bitcoin ECDSA public key.
+/// A Bitcoin/Kaon ECDSA public key.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PublicKey {
     /// Whether this public key should be serialized as compressed.
@@ -57,10 +58,10 @@ impl PublicKey {
         }
     }
 
-    /// Returns bitcoin 160-bit hash of the public key.
+    /// Returns bitcoin/Kaon 160-bit hash of the public key.
     pub fn pubkey_hash(&self) -> PubkeyHash { self.with_serialized(PubkeyHash::hash) }
 
-    /// Returns bitcoin 160-bit hash of the public key for witness program
+    /// Returns bitcoin/Kaon 160-bit hash of the public key for witness program
     pub fn wpubkey_hash(&self) -> Result<WPubkeyHash, UncompressedPublicKeyError> {
         if self.compressed {
             Ok(WPubkeyHash::from_byte_array(
@@ -121,7 +122,7 @@ impl PublicKey {
     /// `sort_by_key`, or any of the other `*_by_key` methods on slice.
     /// Pass the method into the sort method directly. (ie. `PublicKey::to_sort_key`)
     ///
-    /// This method of sorting is in line with Bitcoin Core's implementation of
+    /// This method of sorting is in line with Kaon Core's implementation of
     /// sorting keys for output descriptors such as `sortedmulti()`.
     ///
     /// If every `PublicKey` in the slice is `compressed == true` then this will sort
@@ -133,7 +134,7 @@ impl PublicKey {
     ///
     /// ```rust
     /// use std::str::FromStr;
-    /// use bitcoin::PublicKey;
+    /// use kaon::PublicKey;
     ///
     /// let pk = |s| PublicKey::from_str(s).unwrap();
     ///
@@ -154,7 +155,7 @@ impl PublicKey {
     ///     pk("032b8324c93575034047a52e9bca05a46d8347046b91a032eff07d5de8d3f2730b"),
     ///     pk("038f47dcd43ba6d97fc9ed2e3bba09b175a45fac55f0683e8cf771e8ced4572354"),
     ///     // Uncompressed keys are not BIP67 compliant, but are sorted
-    ///     // after compressed keys in Bitcoin Core using `sortedmulti()`
+    ///     // after compressed keys in Kaon Core using `sortedmulti()`
     ///     pk("045d753414fa292ea5b8f56e39cfb6a0287b2546231a5cb05c4b14ab4b463d171f5128148985b23eccb1e2905374873b1f09b9487f47afa6b1f2b0083ac8b4f7e8"),
     ///     pk("04c4b0bbb339aa236bff38dbe6a451e111972a7909a126bc424013cba2ec33bc3816753d96001fd7cba3ce5372f5c9a0d63708183033538d07b1e532fc43aaacfa"),
     ///     pk("04c4b0bbb339aa236bff38dbe6a451e111972a7909a126bc424013cba2ec33bc38e98ac269ffe028345c31ac8d0a365f29c8f7e7cfccac72f84e1acd02bc554f35"),
@@ -218,6 +219,27 @@ impl From<PublicKey> for XOnlyPublicKey {
     fn from(pk: PublicKey) -> XOnlyPublicKey { pk.inner.into() }
 }
 
+impl Encodable for PublicKey {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+        w.write(&self.to_bytes())
+    }
+}
+
+impl Decodable for PublicKey {
+    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+        Ok(PublicKey::read_from(r)?) // TODO: proper error handling
+    }
+}
+
+impl Default for PublicKey {
+    fn default() -> PublicKey {
+        PublicKey {
+            compressed: false,
+            inner: secp256k1::PublicKey::from_slice(&[0; constants::PUBLIC_KEY_SIZE - 1]).unwrap(), // TODO: proper init
+        }
+    }
+}
+
 /// An opaque return type for PublicKey::to_sort_key.
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct SortKey(ArrayVec<u8, 65>);
@@ -269,15 +291,15 @@ impl From<&PublicKey> for PubkeyHash {
     fn from(key: &PublicKey) -> PubkeyHash { key.pubkey_hash() }
 }
 
-/// An always-compressed Bitcoin ECDSA public key.
+/// An always-compressed Bitcoin/Kaon ECDSA public key.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CompressedPublicKey(pub secp256k1::PublicKey);
 
 impl CompressedPublicKey {
-    /// Returns bitcoin 160-bit hash of the public key.
+    /// Returns Kaon 160-bit hash of the public key.
     pub fn pubkey_hash(&self) -> PubkeyHash { PubkeyHash::hash(&self.to_bytes()) }
 
-    /// Returns bitcoin 160-bit hash of the public key for witness program.
+    /// Returns Kaon 160-bit hash of the public key for witness program.
     pub fn wpubkey_hash(&self) -> WPubkeyHash {
         WPubkeyHash::from_byte_array(hash160::Hash::hash(&self.to_bytes()).to_byte_array())
     }
@@ -393,7 +415,7 @@ impl From<&CompressedPublicKey> for WPubkeyHash {
     fn from(key: &CompressedPublicKey) -> Self { key.wpubkey_hash() }
 }
 
-/// A Bitcoin ECDSA private key.
+/// A Bitcoin/Kaon ECDSA private key.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PrivateKey {
     /// Whether this private key should be serialized as compressed.
@@ -713,8 +735,8 @@ pub type UntweakedKeypair = Keypair;
 ///
 /// ```
 /// # #[cfg(feature = "rand-std")] {
-/// # use bitcoin::key::{Keypair, TweakedKeypair, TweakedPublicKey};
-/// # use bitcoin::secp256k1::{rand, Secp256k1};
+/// # use kaon::key::{Keypair, TweakedKeypair, TweakedPublicKey};
+/// # use kaon::secp256k1::{rand, Secp256k1};
 /// # let secp = Secp256k1::new();
 /// # let keypair = TweakedKeypair::dangerous_assume_tweaked(Keypair::new(&secp, &mut rand::thread_rng()));
 /// // There are various conversion methods available to get a tweaked pubkey from a tweaked keypair.
