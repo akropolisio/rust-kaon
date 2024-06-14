@@ -4928,7 +4928,7 @@ pub kaon::KnownHrp::Regtest
 pub kaon::KnownHrp::Testnets
 pub kaon::MerkleBlock::header: kaon::blockdata::block::Header
 pub kaon::MerkleBlock::txn: kaon::merkle_tree::PartialMerkleTree
-pub kaon::Network::Mainnet
+pub kaon::Network::Bitcoin
 pub kaon::Network::Regtest
 pub kaon::Network::Signet
 pub kaon::Network::Testnet
@@ -5248,7 +5248,7 @@ pub kaon::merkle_tree::MerkleBlockError::NotAllHashesConsumed
 pub kaon::merkle_tree::MerkleBlockError::NotEnoughBits
 pub kaon::merkle_tree::MerkleBlockError::TooManyHashes
 pub kaon::merkle_tree::MerkleBlockError::TooManyTransactions
-pub kaon::network::Network::Mainnet
+pub kaon::network::Network::Bitcoin
 pub kaon::network::Network::Regtest
 pub kaon::network::Network::Signet
 pub kaon::network::Network::Testnet
@@ -6021,7 +6021,7 @@ pub const kaon::blockdata::transaction::Wtxid::DISPLAY_BACKWARD: bool
 pub const kaon::blockdata::transaction::Wtxid::LEN: usize
 pub const kaon::blockdata::transaction::Wtxid::N: usize
 pub const kaon::consensus::encode::MAX_VEC_SIZE: usize = 4_000_000usize
-pub const kaon::consensus::params::Params::KAON: kaon::consensus::params::Params
+pub const kaon::consensus::params::Params::MAINNET: kaon::consensus::params::Params
 pub const kaon::consensus::params::Params::MAINNET: kaon::consensus::params::Params
 pub const kaon::consensus::params::Params::REGTEST: kaon::consensus::params::Params
 pub const kaon::consensus::params::Params::SIGNET: kaon::consensus::params::Params
@@ -6327,7 +6327,7 @@ pub const kaon::pow::Target::ZERO: kaon::pow::Target
 pub const kaon::psbt::Psbt::DEFAULT_MAX_FEE_RATE: kaon_units::fee_rate::FeeRate
 pub const kaon::script::witness_program::MAX_SIZE: usize = 40usize
 pub const kaon::script::witness_program::MIN_SIZE: usize = 2usize
-pub const kaon::sign_message::KAON_SIGNED_MSG_PREFIX: &[u8]
+pub const kaon::sign_message::kaon_SIGNED_MSG_PREFIX: &[u8]
 pub const kaon::taproot::TAPROOT_ANNEX_PREFIX: u8 = 80u8
 pub const kaon::taproot::TAPROOT_CONTROL_BASE_SIZE: usize = 33usize
 pub const kaon::taproot::TAPROOT_CONTROL_MAX_NODE_COUNT: usize = 128usize
@@ -6876,6 +6876,7 @@ pub fn kaon::EcdsaSighashType::hash<__H: core::hash::Hasher>(&self, state: &mut 
 pub fn kaon::EcdsaSighashType::serialize<S>(&self, serializer: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error> where S: serde::ser::Serializer
 pub fn kaon::EcdsaSighashType::to_u32(self) -> u32
 pub fn kaon::LegacySighash::all_zeros() -> Self
+pub fn kaon::LegacySighash::as_byte_array(&self) -> &<kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::LegacySighash::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::LegacySighash::as_raw_hash(&self) -> &kaon_hashes::sha256d::Hash
 pub fn kaon::LegacySighash::as_ref(&self) -> &[u8; 32]
@@ -6884,20 +6885,25 @@ pub fn kaon::LegacySighash::borrow(&self) -> &[u8]
 pub fn kaon::LegacySighash::clone(&self) -> kaon::LegacySighash
 pub fn kaon::LegacySighash::cmp(&self, other: &kaon::LegacySighash) -> core::cmp::Ordering
 pub fn kaon::LegacySighash::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::LegacySighash, <D as serde::de::Deserializer>::Error>
-pub fn kaon::LegacySighash::engine() -> Self::Engine
+pub fn kaon::LegacySighash::engine() -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::LegacySighash::eq(&self, other: &kaon::LegacySighash) -> bool
 pub fn kaon::LegacySighash::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::LegacySighash::from(inner: kaon_hashes::sha256d::Hash) -> kaon::LegacySighash
+pub fn kaon::LegacySighash::from_byte_array(bytes: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::LegacySighash::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::LegacySighash::from_engine(e: Self::Engine) -> Self
+pub fn kaon::LegacySighash::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::LegacySighash::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> kaon::LegacySighash
 pub fn kaon::LegacySighash::from_raw_hash(inner: kaon_hashes::sha256d::Hash) -> kaon::LegacySighash
 pub fn kaon::LegacySighash::from_slice(sl: &[u8]) -> core::result::Result<kaon::LegacySighash, kaon_hashes::FromSliceError>
 pub fn kaon::LegacySighash::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::LegacySighash::from_str(s: &str) -> core::result::Result<kaon::LegacySighash, Self::Err>
+pub fn kaon::LegacySighash::hash(data: &[u8]) -> Self
 pub fn kaon::LegacySighash::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::LegacySighash::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::LegacySighash::index(&self, index: I) -> &Self::Output
 pub fn kaon::LegacySighash::partial_cmp(&self, other: &kaon::LegacySighash) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::LegacySighash::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::LegacySighash::to_byte_array(self) -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::LegacySighash::to_byte_array(self) -> Self::Bytes
 pub fn kaon::LegacySighash::to_raw_hash(self) -> kaon_hashes::sha256d::Hash
 pub fn kaon::MerkleBlock::clone(&self) -> kaon::MerkleBlock
@@ -6925,6 +6931,7 @@ pub fn kaon::PrivateKey::serialize<S: serde::ser::Serializer>(&self, s: S) -> co
 pub fn kaon::PrivateKey::to_bytes(self) -> alloc::vec::Vec<u8>
 pub fn kaon::PrivateKey::to_wif(self) -> alloc::string::String
 pub fn kaon::PubkeyHash::all_zeros() -> Self
+pub fn kaon::PubkeyHash::as_byte_array(&self) -> &<kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::PubkeyHash::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::PubkeyHash::as_raw_hash(&self) -> &kaon_hashes::hash160::Hash
 pub fn kaon::PubkeyHash::as_ref(&self) -> &[u8; 20]
@@ -6934,7 +6941,7 @@ pub fn kaon::PubkeyHash::borrow(&self) -> &[u8]
 pub fn kaon::PubkeyHash::clone(&self) -> kaon::PubkeyHash
 pub fn kaon::PubkeyHash::cmp(&self, other: &kaon::PubkeyHash) -> core::cmp::Ordering
 pub fn kaon::PubkeyHash::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::PubkeyHash, <D as serde::de::Deserializer>::Error>
-pub fn kaon::PubkeyHash::engine() -> Self::Engine
+pub fn kaon::PubkeyHash::engine() -> <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::PubkeyHash::eq(&self, other: &kaon::PubkeyHash) -> bool
 pub fn kaon::PubkeyHash::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::PubkeyHash::from(inner: kaon_hashes::hash160::Hash) -> kaon::PubkeyHash
@@ -6942,16 +6949,21 @@ pub fn kaon::PubkeyHash::from(key: &kaon::CompressedPublicKey) -> Self
 pub fn kaon::PubkeyHash::from(key: &kaon::PublicKey) -> kaon::PubkeyHash
 pub fn kaon::PubkeyHash::from(key: kaon::CompressedPublicKey) -> Self
 pub fn kaon::PubkeyHash::from(key: kaon::PublicKey) -> kaon::PubkeyHash
+pub fn kaon::PubkeyHash::from_byte_array(bytes: <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::PubkeyHash::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::PubkeyHash::from_engine(e: Self::Engine) -> Self
+pub fn kaon::PubkeyHash::from_engine(e: <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::PubkeyHash::from_engine(e: <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Engine) -> kaon::PubkeyHash
 pub fn kaon::PubkeyHash::from_raw_hash(inner: kaon_hashes::hash160::Hash) -> kaon::PubkeyHash
 pub fn kaon::PubkeyHash::from_slice(sl: &[u8]) -> core::result::Result<kaon::PubkeyHash, kaon_hashes::FromSliceError>
 pub fn kaon::PubkeyHash::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::PubkeyHash::from_str(s: &str) -> core::result::Result<kaon::PubkeyHash, Self::Err>
+pub fn kaon::PubkeyHash::hash(data: &[u8]) -> Self
 pub fn kaon::PubkeyHash::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::PubkeyHash::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::PubkeyHash::index(&self, index: I) -> &Self::Output
 pub fn kaon::PubkeyHash::partial_cmp(&self, other: &kaon::PubkeyHash) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::PubkeyHash::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::PubkeyHash::to_byte_array(self) -> <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::PubkeyHash::to_byte_array(self) -> Self::Bytes
 pub fn kaon::PubkeyHash::to_raw_hash(self) -> kaon_hashes::hash160::Hash
 pub fn kaon::PublicKey::clone(&self) -> kaon::PublicKey
@@ -6978,6 +6990,7 @@ pub fn kaon::PublicKey::verify<C: secp256k1::context::Verification>(&self, secp:
 pub fn kaon::PublicKey::wpubkey_hash(&self) -> core::result::Result<kaon::WPubkeyHash, kaon::key::UncompressedPublicKeyError>
 pub fn kaon::PublicKey::write_into<W: kaon_io::Write + core::marker::Sized>(&self, writer: &mut W) -> core::result::Result<(), kaon_io::error::Error>
 pub fn kaon::SegwitV0Sighash::all_zeros() -> Self
+pub fn kaon::SegwitV0Sighash::as_byte_array(&self) -> &<kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::SegwitV0Sighash::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::SegwitV0Sighash::as_raw_hash(&self) -> &kaon_hashes::sha256d::Hash
 pub fn kaon::SegwitV0Sighash::as_ref(&self) -> &[u8; 32]
@@ -6986,23 +6999,29 @@ pub fn kaon::SegwitV0Sighash::borrow(&self) -> &[u8]
 pub fn kaon::SegwitV0Sighash::clone(&self) -> kaon::SegwitV0Sighash
 pub fn kaon::SegwitV0Sighash::cmp(&self, other: &kaon::SegwitV0Sighash) -> core::cmp::Ordering
 pub fn kaon::SegwitV0Sighash::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::SegwitV0Sighash, <D as serde::de::Deserializer>::Error>
-pub fn kaon::SegwitV0Sighash::engine() -> Self::Engine
+pub fn kaon::SegwitV0Sighash::engine() -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::SegwitV0Sighash::eq(&self, other: &kaon::SegwitV0Sighash) -> bool
 pub fn kaon::SegwitV0Sighash::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::SegwitV0Sighash::from(inner: kaon_hashes::sha256d::Hash) -> kaon::SegwitV0Sighash
+pub fn kaon::SegwitV0Sighash::from_byte_array(bytes: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::SegwitV0Sighash::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::SegwitV0Sighash::from_engine(e: Self::Engine) -> Self
+pub fn kaon::SegwitV0Sighash::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::SegwitV0Sighash::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> kaon::SegwitV0Sighash
 pub fn kaon::SegwitV0Sighash::from_raw_hash(inner: kaon_hashes::sha256d::Hash) -> kaon::SegwitV0Sighash
 pub fn kaon::SegwitV0Sighash::from_slice(sl: &[u8]) -> core::result::Result<kaon::SegwitV0Sighash, kaon_hashes::FromSliceError>
 pub fn kaon::SegwitV0Sighash::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::SegwitV0Sighash::from_str(s: &str) -> core::result::Result<kaon::SegwitV0Sighash, Self::Err>
+pub fn kaon::SegwitV0Sighash::hash(data: &[u8]) -> Self
 pub fn kaon::SegwitV0Sighash::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::SegwitV0Sighash::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::SegwitV0Sighash::index(&self, index: I) -> &Self::Output
 pub fn kaon::SegwitV0Sighash::partial_cmp(&self, other: &kaon::SegwitV0Sighash) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::SegwitV0Sighash::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::SegwitV0Sighash::to_byte_array(self) -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::SegwitV0Sighash::to_byte_array(self) -> Self::Bytes
 pub fn kaon::SegwitV0Sighash::to_raw_hash(self) -> kaon_hashes::sha256d::Hash
 pub fn kaon::TapSighash::all_zeros() -> Self
+pub fn kaon::TapSighash::as_byte_array(&self) -> &<kaon_hashes::sha256t::Hash<kaon::TapSighashTag> as kaon_hashes::Hash>::Bytes
 pub fn kaon::TapSighash::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::TapSighash::as_raw_hash(&self) -> &kaon_hashes::sha256t::Hash<kaon::TapSighashTag>
 pub fn kaon::TapSighash::as_ref(&self) -> &[u8; 32]
@@ -7011,20 +7030,25 @@ pub fn kaon::TapSighash::borrow(&self) -> &[u8]
 pub fn kaon::TapSighash::clone(&self) -> kaon::TapSighash
 pub fn kaon::TapSighash::cmp(&self, other: &kaon::TapSighash) -> core::cmp::Ordering
 pub fn kaon::TapSighash::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::TapSighash, <D as serde::de::Deserializer>::Error>
-pub fn kaon::TapSighash::engine() -> Self::Engine
+pub fn kaon::TapSighash::engine() -> <kaon_hashes::sha256t::Hash<kaon::TapSighashTag> as kaon_hashes::Hash>::Engine
 pub fn kaon::TapSighash::eq(&self, other: &kaon::TapSighash) -> bool
 pub fn kaon::TapSighash::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::TapSighash::from(inner: kaon_hashes::sha256t::Hash<kaon::TapSighashTag>) -> kaon::TapSighash
+pub fn kaon::TapSighash::from_byte_array(bytes: <kaon_hashes::sha256t::Hash<kaon::TapSighashTag> as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::TapSighash::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::TapSighash::from_engine(e: Self::Engine) -> Self
+pub fn kaon::TapSighash::from_engine(e: <kaon_hashes::sha256t::Hash<kaon::TapSighashTag> as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::TapSighash::from_engine(e: <kaon_hashes::sha256t::Hash<kaon::TapSighashTag> as kaon_hashes::Hash>::Engine) -> kaon::TapSighash
 pub fn kaon::TapSighash::from_raw_hash(inner: kaon_hashes::sha256t::Hash<kaon::TapSighashTag>) -> kaon::TapSighash
 pub fn kaon::TapSighash::from_slice(sl: &[u8]) -> core::result::Result<kaon::TapSighash, kaon_hashes::FromSliceError>
 pub fn kaon::TapSighash::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::TapSighash::from_str(s: &str) -> core::result::Result<kaon::TapSighash, Self::Err>
+pub fn kaon::TapSighash::hash(data: &[u8]) -> Self
 pub fn kaon::TapSighash::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::TapSighash::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::TapSighash::index(&self, index: I) -> &Self::Output
 pub fn kaon::TapSighash::partial_cmp(&self, other: &kaon::TapSighash) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::TapSighash::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::TapSighash::to_byte_array(self) -> <kaon_hashes::sha256t::Hash<kaon::TapSighashTag> as kaon_hashes::Hash>::Bytes
 pub fn kaon::TapSighash::to_byte_array(self) -> Self::Bytes
 pub fn kaon::TapSighash::to_raw_hash(self) -> kaon_hashes::sha256t::Hash<kaon::TapSighashTag>
 pub fn kaon::TapSighashTag::clone(&self) -> kaon::TapSighashTag
@@ -7046,6 +7070,7 @@ pub fn kaon::TapSighashType::hash<__H: core::hash::Hasher>(&self, state: &mut __
 pub fn kaon::TapSighashType::partial_cmp(&self, other: &kaon::TapSighashType) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::TapSighashType::serialize<S>(&self, serializer: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error> where S: serde::ser::Serializer
 pub fn kaon::WPubkeyHash::all_zeros() -> Self
+pub fn kaon::WPubkeyHash::as_byte_array(&self) -> &<kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::WPubkeyHash::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::WPubkeyHash::as_raw_hash(&self) -> &kaon_hashes::hash160::Hash
 pub fn kaon::WPubkeyHash::as_ref(&self) -> &[u8; 20]
@@ -7055,22 +7080,27 @@ pub fn kaon::WPubkeyHash::borrow(&self) -> &[u8]
 pub fn kaon::WPubkeyHash::clone(&self) -> kaon::WPubkeyHash
 pub fn kaon::WPubkeyHash::cmp(&self, other: &kaon::WPubkeyHash) -> core::cmp::Ordering
 pub fn kaon::WPubkeyHash::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::WPubkeyHash, <D as serde::de::Deserializer>::Error>
-pub fn kaon::WPubkeyHash::engine() -> Self::Engine
+pub fn kaon::WPubkeyHash::engine() -> <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::WPubkeyHash::eq(&self, other: &kaon::WPubkeyHash) -> bool
 pub fn kaon::WPubkeyHash::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::WPubkeyHash::from(inner: kaon_hashes::hash160::Hash) -> kaon::WPubkeyHash
 pub fn kaon::WPubkeyHash::from(key: &kaon::CompressedPublicKey) -> Self
 pub fn kaon::WPubkeyHash::from(key: kaon::CompressedPublicKey) -> Self
+pub fn kaon::WPubkeyHash::from_byte_array(bytes: <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::WPubkeyHash::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::WPubkeyHash::from_engine(e: Self::Engine) -> Self
+pub fn kaon::WPubkeyHash::from_engine(e: <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::WPubkeyHash::from_engine(e: <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Engine) -> kaon::WPubkeyHash
 pub fn kaon::WPubkeyHash::from_raw_hash(inner: kaon_hashes::hash160::Hash) -> kaon::WPubkeyHash
 pub fn kaon::WPubkeyHash::from_slice(sl: &[u8]) -> core::result::Result<kaon::WPubkeyHash, kaon_hashes::FromSliceError>
 pub fn kaon::WPubkeyHash::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::WPubkeyHash::from_str(s: &str) -> core::result::Result<kaon::WPubkeyHash, Self::Err>
+pub fn kaon::WPubkeyHash::hash(data: &[u8]) -> Self
 pub fn kaon::WPubkeyHash::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::WPubkeyHash::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::WPubkeyHash::index(&self, index: I) -> &Self::Output
 pub fn kaon::WPubkeyHash::partial_cmp(&self, other: &kaon::WPubkeyHash) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::WPubkeyHash::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::WPubkeyHash::to_byte_array(self) -> <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::WPubkeyHash::to_byte_array(self) -> Self::Bytes
 pub fn kaon::WPubkeyHash::to_raw_hash(self) -> kaon_hashes::hash160::Hash
 pub fn kaon::address::Address::address_type(&self) -> core::option::Option<kaon::address::AddressType>
@@ -7299,6 +7329,7 @@ pub fn kaon::bip158::Error::from(io: kaon_io::error::Error) -> Self
 pub fn kaon::bip158::Error::from(never: core::convert::Infallible) -> Self
 pub fn kaon::bip158::Error::source(&self) -> core::option::Option<&(dyn core::error::Error + 'static)>
 pub fn kaon::bip158::FilterHash::all_zeros() -> Self
+pub fn kaon::bip158::FilterHash::as_byte_array(&self) -> &<kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::bip158::FilterHash::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::bip158::FilterHash::as_raw_hash(&self) -> &kaon_hashes::sha256d::Hash
 pub fn kaon::bip158::FilterHash::as_ref(&self) -> &[u8; 32]
@@ -7309,24 +7340,30 @@ pub fn kaon::bip158::FilterHash::cmp(&self, other: &kaon::bip158::FilterHash) ->
 pub fn kaon::bip158::FilterHash::consensus_decode<R: kaon_io::BufRead + core::marker::Sized>(r: &mut R) -> core::result::Result<Self, kaon::consensus::encode::Error>
 pub fn kaon::bip158::FilterHash::consensus_encode<W: kaon_io::Write + core::marker::Sized>(&self, w: &mut W) -> core::result::Result<usize, kaon_io::error::Error>
 pub fn kaon::bip158::FilterHash::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::bip158::FilterHash, <D as serde::de::Deserializer>::Error>
-pub fn kaon::bip158::FilterHash::engine() -> Self::Engine
+pub fn kaon::bip158::FilterHash::engine() -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::bip158::FilterHash::eq(&self, other: &kaon::bip158::FilterHash) -> bool
 pub fn kaon::bip158::FilterHash::filter_header(&self, previous_filter_header: &kaon::bip158::FilterHeader) -> kaon::bip158::FilterHeader
 pub fn kaon::bip158::FilterHash::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::bip158::FilterHash::from(inner: kaon_hashes::sha256d::Hash) -> kaon::bip158::FilterHash
+pub fn kaon::bip158::FilterHash::from_byte_array(bytes: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::bip158::FilterHash::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::bip158::FilterHash::from_engine(e: Self::Engine) -> Self
+pub fn kaon::bip158::FilterHash::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::bip158::FilterHash::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> kaon::bip158::FilterHash
 pub fn kaon::bip158::FilterHash::from_raw_hash(inner: kaon_hashes::sha256d::Hash) -> kaon::bip158::FilterHash
 pub fn kaon::bip158::FilterHash::from_slice(sl: &[u8]) -> core::result::Result<kaon::bip158::FilterHash, kaon_hashes::FromSliceError>
 pub fn kaon::bip158::FilterHash::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::bip158::FilterHash::from_str(s: &str) -> core::result::Result<kaon::bip158::FilterHash, Self::Err>
+pub fn kaon::bip158::FilterHash::hash(data: &[u8]) -> Self
 pub fn kaon::bip158::FilterHash::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::bip158::FilterHash::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::bip158::FilterHash::index(&self, index: I) -> &Self::Output
 pub fn kaon::bip158::FilterHash::partial_cmp(&self, other: &kaon::bip158::FilterHash) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::bip158::FilterHash::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::bip158::FilterHash::to_byte_array(self) -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::bip158::FilterHash::to_byte_array(self) -> Self::Bytes
 pub fn kaon::bip158::FilterHash::to_raw_hash(self) -> kaon_hashes::sha256d::Hash
 pub fn kaon::bip158::FilterHeader::all_zeros() -> Self
+pub fn kaon::bip158::FilterHeader::as_byte_array(&self) -> &<kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::bip158::FilterHeader::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::bip158::FilterHeader::as_raw_hash(&self) -> &kaon_hashes::sha256d::Hash
 pub fn kaon::bip158::FilterHeader::as_ref(&self) -> &[u8; 32]
@@ -7337,20 +7374,25 @@ pub fn kaon::bip158::FilterHeader::cmp(&self, other: &kaon::bip158::FilterHeader
 pub fn kaon::bip158::FilterHeader::consensus_decode<R: kaon_io::BufRead + core::marker::Sized>(r: &mut R) -> core::result::Result<Self, kaon::consensus::encode::Error>
 pub fn kaon::bip158::FilterHeader::consensus_encode<W: kaon_io::Write + core::marker::Sized>(&self, w: &mut W) -> core::result::Result<usize, kaon_io::error::Error>
 pub fn kaon::bip158::FilterHeader::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::bip158::FilterHeader, <D as serde::de::Deserializer>::Error>
-pub fn kaon::bip158::FilterHeader::engine() -> Self::Engine
+pub fn kaon::bip158::FilterHeader::engine() -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::bip158::FilterHeader::eq(&self, other: &kaon::bip158::FilterHeader) -> bool
 pub fn kaon::bip158::FilterHeader::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::bip158::FilterHeader::from(inner: kaon_hashes::sha256d::Hash) -> kaon::bip158::FilterHeader
+pub fn kaon::bip158::FilterHeader::from_byte_array(bytes: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::bip158::FilterHeader::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::bip158::FilterHeader::from_engine(e: Self::Engine) -> Self
+pub fn kaon::bip158::FilterHeader::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::bip158::FilterHeader::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> kaon::bip158::FilterHeader
 pub fn kaon::bip158::FilterHeader::from_raw_hash(inner: kaon_hashes::sha256d::Hash) -> kaon::bip158::FilterHeader
 pub fn kaon::bip158::FilterHeader::from_slice(sl: &[u8]) -> core::result::Result<kaon::bip158::FilterHeader, kaon_hashes::FromSliceError>
 pub fn kaon::bip158::FilterHeader::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::bip158::FilterHeader::from_str(s: &str) -> core::result::Result<kaon::bip158::FilterHeader, Self::Err>
+pub fn kaon::bip158::FilterHeader::hash(data: &[u8]) -> Self
 pub fn kaon::bip158::FilterHeader::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::bip158::FilterHeader::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::bip158::FilterHeader::index(&self, index: I) -> &Self::Output
 pub fn kaon::bip158::FilterHeader::partial_cmp(&self, other: &kaon::bip158::FilterHeader) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::bip158::FilterHeader::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::bip158::FilterHeader::to_byte_array(self) -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::bip158::FilterHeader::to_byte_array(self) -> Self::Bytes
 pub fn kaon::bip158::FilterHeader::to_raw_hash(self) -> kaon_hashes::sha256d::Hash
 pub fn kaon::bip158::GcsFilterReader::match_all<I, R>(&self, reader: &mut R, query: I) -> core::result::Result<bool, kaon::bip158::Error> where I: core::iter::traits::iterator::Iterator, <I as core::iter::traits::iterator::Iterator>::Item: core::borrow::Borrow<[u8]>, R: kaon_io::BufRead + core::marker::Sized
@@ -7478,6 +7520,7 @@ pub fn kaon::bip32::InvalidBase58PayloadLengthError::eq(&self, other: &kaon::bip
 pub fn kaon::bip32::InvalidBase58PayloadLengthError::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::bip32::InvalidBase58PayloadLengthError::invalid_base58_payload_length(&self) -> usize
 pub fn kaon::bip32::XKeyIdentifier::all_zeros() -> Self
+pub fn kaon::bip32::XKeyIdentifier::as_byte_array(&self) -> &<kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::bip32::XKeyIdentifier::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::bip32::XKeyIdentifier::as_raw_hash(&self) -> &kaon_hashes::hash160::Hash
 pub fn kaon::bip32::XKeyIdentifier::as_ref(&self) -> &[u8; 20]
@@ -7486,22 +7529,27 @@ pub fn kaon::bip32::XKeyIdentifier::borrow(&self) -> &[u8]
 pub fn kaon::bip32::XKeyIdentifier::clone(&self) -> kaon::bip32::XKeyIdentifier
 pub fn kaon::bip32::XKeyIdentifier::cmp(&self, other: &kaon::bip32::XKeyIdentifier) -> core::cmp::Ordering
 pub fn kaon::bip32::XKeyIdentifier::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::bip32::XKeyIdentifier, <D as serde::de::Deserializer>::Error>
-pub fn kaon::bip32::XKeyIdentifier::engine() -> Self::Engine
+pub fn kaon::bip32::XKeyIdentifier::engine() -> <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::bip32::XKeyIdentifier::eq(&self, other: &kaon::bip32::XKeyIdentifier) -> bool
 pub fn kaon::bip32::XKeyIdentifier::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::bip32::XKeyIdentifier::from(inner: kaon_hashes::hash160::Hash) -> kaon::bip32::XKeyIdentifier
 pub fn kaon::bip32::XKeyIdentifier::from(key: &kaon::bip32::Xpub) -> kaon::bip32::XKeyIdentifier
 pub fn kaon::bip32::XKeyIdentifier::from(key: kaon::bip32::Xpub) -> kaon::bip32::XKeyIdentifier
+pub fn kaon::bip32::XKeyIdentifier::from_byte_array(bytes: <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::bip32::XKeyIdentifier::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::bip32::XKeyIdentifier::from_engine(e: Self::Engine) -> Self
+pub fn kaon::bip32::XKeyIdentifier::from_engine(e: <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::bip32::XKeyIdentifier::from_engine(e: <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Engine) -> kaon::bip32::XKeyIdentifier
 pub fn kaon::bip32::XKeyIdentifier::from_raw_hash(inner: kaon_hashes::hash160::Hash) -> kaon::bip32::XKeyIdentifier
 pub fn kaon::bip32::XKeyIdentifier::from_slice(sl: &[u8]) -> core::result::Result<kaon::bip32::XKeyIdentifier, kaon_hashes::FromSliceError>
 pub fn kaon::bip32::XKeyIdentifier::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::bip32::XKeyIdentifier::from_str(s: &str) -> core::result::Result<kaon::bip32::XKeyIdentifier, Self::Err>
+pub fn kaon::bip32::XKeyIdentifier::hash(data: &[u8]) -> Self
 pub fn kaon::bip32::XKeyIdentifier::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::bip32::XKeyIdentifier::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::bip32::XKeyIdentifier::index(&self, index: I) -> &Self::Output
 pub fn kaon::bip32::XKeyIdentifier::partial_cmp(&self, other: &kaon::bip32::XKeyIdentifier) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::bip32::XKeyIdentifier::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::bip32::XKeyIdentifier::to_byte_array(self) -> <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::bip32::XKeyIdentifier::to_byte_array(self) -> Self::Bytes
 pub fn kaon::bip32::XKeyIdentifier::to_raw_hash(self) -> kaon_hashes::hash160::Hash
 pub fn kaon::bip32::Xpriv::clone(&self) -> kaon::bip32::Xpriv
@@ -7564,6 +7612,7 @@ pub fn kaon::blockdata::block::Block::total_size(&self) -> usize
 pub fn kaon::blockdata::block::Block::weight(&self) -> kaon_units::weight::Weight
 pub fn kaon::blockdata::block::Block::witness_root(&self) -> core::option::Option<kaon::blockdata::block::WitnessMerkleNode>
 pub fn kaon::blockdata::block::BlockHash::all_zeros() -> Self
+pub fn kaon::blockdata::block::BlockHash::as_byte_array(&self) -> &<kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::block::BlockHash::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::blockdata::block::BlockHash::as_raw_hash(&self) -> &kaon_hashes::sha256d::Hash
 pub fn kaon::blockdata::block::BlockHash::as_ref(&self) -> &[u8; 32]
@@ -7574,7 +7623,7 @@ pub fn kaon::blockdata::block::BlockHash::cmp(&self, other: &kaon::blockdata::bl
 pub fn kaon::blockdata::block::BlockHash::consensus_decode<R: kaon_io::BufRead + core::marker::Sized>(r: &mut R) -> core::result::Result<Self, kaon::consensus::encode::Error>
 pub fn kaon::blockdata::block::BlockHash::consensus_encode<W: kaon_io::Write + core::marker::Sized>(&self, w: &mut W) -> core::result::Result<usize, kaon_io::error::Error>
 pub fn kaon::blockdata::block::BlockHash::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::blockdata::block::BlockHash, <D as serde::de::Deserializer>::Error>
-pub fn kaon::blockdata::block::BlockHash::engine() -> Self::Engine
+pub fn kaon::blockdata::block::BlockHash::engine() -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::blockdata::block::BlockHash::eq(&self, other: &kaon::blockdata::block::BlockHash) -> bool
 pub fn kaon::blockdata::block::BlockHash::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::blockdata::block::BlockHash::from(block: &kaon::blockdata::block::Block) -> kaon::blockdata::block::BlockHash
@@ -7582,16 +7631,21 @@ pub fn kaon::blockdata::block::BlockHash::from(block: kaon::blockdata::block::Bl
 pub fn kaon::blockdata::block::BlockHash::from(header: &kaon::blockdata::block::Header) -> kaon::blockdata::block::BlockHash
 pub fn kaon::blockdata::block::BlockHash::from(header: kaon::blockdata::block::Header) -> kaon::blockdata::block::BlockHash
 pub fn kaon::blockdata::block::BlockHash::from(inner: kaon_hashes::sha256d::Hash) -> kaon::blockdata::block::BlockHash
+pub fn kaon::blockdata::block::BlockHash::from_byte_array(bytes: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::blockdata::block::BlockHash::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::blockdata::block::BlockHash::from_engine(e: Self::Engine) -> Self
+pub fn kaon::blockdata::block::BlockHash::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::blockdata::block::BlockHash::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> kaon::blockdata::block::BlockHash
 pub fn kaon::blockdata::block::BlockHash::from_raw_hash(inner: kaon_hashes::sha256d::Hash) -> kaon::blockdata::block::BlockHash
 pub fn kaon::blockdata::block::BlockHash::from_slice(sl: &[u8]) -> core::result::Result<kaon::blockdata::block::BlockHash, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::block::BlockHash::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::block::BlockHash::from_str(s: &str) -> core::result::Result<kaon::blockdata::block::BlockHash, Self::Err>
+pub fn kaon::blockdata::block::BlockHash::hash(data: &[u8]) -> Self
 pub fn kaon::blockdata::block::BlockHash::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::blockdata::block::BlockHash::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::blockdata::block::BlockHash::index(&self, index: I) -> &Self::Output
 pub fn kaon::blockdata::block::BlockHash::partial_cmp(&self, other: &kaon::blockdata::block::BlockHash) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::blockdata::block::BlockHash::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::blockdata::block::BlockHash::to_byte_array(self) -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::block::BlockHash::to_byte_array(self) -> Self::Bytes
 pub fn kaon::blockdata::block::BlockHash::to_raw_hash(self) -> kaon_hashes::sha256d::Hash
 pub fn kaon::blockdata::block::Header::block_hash(&self) -> kaon::blockdata::block::BlockHash
@@ -7612,6 +7666,7 @@ pub fn kaon::blockdata::block::Header::target(&self) -> kaon::pow::Target
 pub fn kaon::blockdata::block::Header::validate_pow(&self, required_target: kaon::pow::Target) -> core::result::Result<kaon::blockdata::block::BlockHash, kaon::blockdata::block::ValidationError>
 pub fn kaon::blockdata::block::Header::work(&self) -> kaon::pow::Work
 pub fn kaon::blockdata::block::TxMerkleNode::all_zeros() -> Self
+pub fn kaon::blockdata::block::TxMerkleNode::as_byte_array(&self) -> &<kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::block::TxMerkleNode::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::blockdata::block::TxMerkleNode::as_raw_hash(&self) -> &kaon_hashes::sha256d::Hash
 pub fn kaon::blockdata::block::TxMerkleNode::as_ref(&self) -> &[u8; 32]
@@ -7622,21 +7677,26 @@ pub fn kaon::blockdata::block::TxMerkleNode::cmp(&self, other: &kaon::blockdata:
 pub fn kaon::blockdata::block::TxMerkleNode::consensus_decode<R: kaon_io::BufRead + core::marker::Sized>(r: &mut R) -> core::result::Result<Self, kaon::consensus::encode::Error>
 pub fn kaon::blockdata::block::TxMerkleNode::consensus_encode<W: kaon_io::Write + core::marker::Sized>(&self, w: &mut W) -> core::result::Result<usize, kaon_io::error::Error>
 pub fn kaon::blockdata::block::TxMerkleNode::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::blockdata::block::TxMerkleNode, <D as serde::de::Deserializer>::Error>
-pub fn kaon::blockdata::block::TxMerkleNode::engine() -> Self::Engine
+pub fn kaon::blockdata::block::TxMerkleNode::engine() -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::blockdata::block::TxMerkleNode::eq(&self, other: &kaon::blockdata::block::TxMerkleNode) -> bool
 pub fn kaon::blockdata::block::TxMerkleNode::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::blockdata::block::TxMerkleNode::from(inner: kaon_hashes::sha256d::Hash) -> kaon::blockdata::block::TxMerkleNode
 pub fn kaon::blockdata::block::TxMerkleNode::from(txid: kaon::blockdata::transaction::Txid) -> Self
+pub fn kaon::blockdata::block::TxMerkleNode::from_byte_array(bytes: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::blockdata::block::TxMerkleNode::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::blockdata::block::TxMerkleNode::from_engine(e: Self::Engine) -> Self
+pub fn kaon::blockdata::block::TxMerkleNode::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::blockdata::block::TxMerkleNode::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> kaon::blockdata::block::TxMerkleNode
 pub fn kaon::blockdata::block::TxMerkleNode::from_raw_hash(inner: kaon_hashes::sha256d::Hash) -> kaon::blockdata::block::TxMerkleNode
 pub fn kaon::blockdata::block::TxMerkleNode::from_slice(sl: &[u8]) -> core::result::Result<kaon::blockdata::block::TxMerkleNode, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::block::TxMerkleNode::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::block::TxMerkleNode::from_str(s: &str) -> core::result::Result<kaon::blockdata::block::TxMerkleNode, Self::Err>
+pub fn kaon::blockdata::block::TxMerkleNode::hash(data: &[u8]) -> Self
 pub fn kaon::blockdata::block::TxMerkleNode::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::blockdata::block::TxMerkleNode::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::blockdata::block::TxMerkleNode::index(&self, index: I) -> &Self::Output
 pub fn kaon::blockdata::block::TxMerkleNode::partial_cmp(&self, other: &kaon::blockdata::block::TxMerkleNode) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::blockdata::block::TxMerkleNode::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::blockdata::block::TxMerkleNode::to_byte_array(self) -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::block::TxMerkleNode::to_byte_array(self) -> Self::Bytes
 pub fn kaon::blockdata::block::TxMerkleNode::to_raw_hash(self) -> kaon_hashes::sha256d::Hash
 pub fn kaon::blockdata::block::ValidationError::clone(&self) -> kaon::blockdata::block::ValidationError
@@ -7658,6 +7718,7 @@ pub fn kaon::blockdata::block::Version::partial_cmp(&self, other: &kaon::blockda
 pub fn kaon::blockdata::block::Version::serialize<__S>(&self, __serializer: __S) -> core::result::Result<<__S as serde::ser::Serializer>::Ok, <__S as serde::ser::Serializer>::Error> where __S: serde::ser::Serializer
 pub fn kaon::blockdata::block::Version::to_consensus(self) -> i32
 pub fn kaon::blockdata::block::WitnessCommitment::all_zeros() -> Self
+pub fn kaon::blockdata::block::WitnessCommitment::as_byte_array(&self) -> &<kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::block::WitnessCommitment::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::blockdata::block::WitnessCommitment::as_raw_hash(&self) -> &kaon_hashes::sha256d::Hash
 pub fn kaon::blockdata::block::WitnessCommitment::as_ref(&self) -> &[u8; 32]
@@ -7666,23 +7727,29 @@ pub fn kaon::blockdata::block::WitnessCommitment::borrow(&self) -> &[u8]
 pub fn kaon::blockdata::block::WitnessCommitment::clone(&self) -> kaon::blockdata::block::WitnessCommitment
 pub fn kaon::blockdata::block::WitnessCommitment::cmp(&self, other: &kaon::blockdata::block::WitnessCommitment) -> core::cmp::Ordering
 pub fn kaon::blockdata::block::WitnessCommitment::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::blockdata::block::WitnessCommitment, <D as serde::de::Deserializer>::Error>
-pub fn kaon::blockdata::block::WitnessCommitment::engine() -> Self::Engine
+pub fn kaon::blockdata::block::WitnessCommitment::engine() -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::blockdata::block::WitnessCommitment::eq(&self, other: &kaon::blockdata::block::WitnessCommitment) -> bool
 pub fn kaon::blockdata::block::WitnessCommitment::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::blockdata::block::WitnessCommitment::from(inner: kaon_hashes::sha256d::Hash) -> kaon::blockdata::block::WitnessCommitment
+pub fn kaon::blockdata::block::WitnessCommitment::from_byte_array(bytes: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::blockdata::block::WitnessCommitment::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::blockdata::block::WitnessCommitment::from_engine(e: Self::Engine) -> Self
+pub fn kaon::blockdata::block::WitnessCommitment::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::blockdata::block::WitnessCommitment::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> kaon::blockdata::block::WitnessCommitment
 pub fn kaon::blockdata::block::WitnessCommitment::from_raw_hash(inner: kaon_hashes::sha256d::Hash) -> kaon::blockdata::block::WitnessCommitment
 pub fn kaon::blockdata::block::WitnessCommitment::from_slice(sl: &[u8]) -> core::result::Result<kaon::blockdata::block::WitnessCommitment, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::block::WitnessCommitment::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::block::WitnessCommitment::from_str(s: &str) -> core::result::Result<kaon::blockdata::block::WitnessCommitment, Self::Err>
+pub fn kaon::blockdata::block::WitnessCommitment::hash(data: &[u8]) -> Self
 pub fn kaon::blockdata::block::WitnessCommitment::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::blockdata::block::WitnessCommitment::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::blockdata::block::WitnessCommitment::index(&self, index: I) -> &Self::Output
 pub fn kaon::blockdata::block::WitnessCommitment::partial_cmp(&self, other: &kaon::blockdata::block::WitnessCommitment) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::blockdata::block::WitnessCommitment::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::blockdata::block::WitnessCommitment::to_byte_array(self) -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::block::WitnessCommitment::to_byte_array(self) -> Self::Bytes
 pub fn kaon::blockdata::block::WitnessCommitment::to_raw_hash(self) -> kaon_hashes::sha256d::Hash
 pub fn kaon::blockdata::block::WitnessMerkleNode::all_zeros() -> Self
+pub fn kaon::blockdata::block::WitnessMerkleNode::as_byte_array(&self) -> &<kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::block::WitnessMerkleNode::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::blockdata::block::WitnessMerkleNode::as_raw_hash(&self) -> &kaon_hashes::sha256d::Hash
 pub fn kaon::blockdata::block::WitnessMerkleNode::as_ref(&self) -> &[u8; 32]
@@ -7693,21 +7760,26 @@ pub fn kaon::blockdata::block::WitnessMerkleNode::cmp(&self, other: &kaon::block
 pub fn kaon::blockdata::block::WitnessMerkleNode::consensus_decode<R: kaon_io::BufRead + core::marker::Sized>(r: &mut R) -> core::result::Result<Self, kaon::consensus::encode::Error>
 pub fn kaon::blockdata::block::WitnessMerkleNode::consensus_encode<W: kaon_io::Write + core::marker::Sized>(&self, w: &mut W) -> core::result::Result<usize, kaon_io::error::Error>
 pub fn kaon::blockdata::block::WitnessMerkleNode::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::blockdata::block::WitnessMerkleNode, <D as serde::de::Deserializer>::Error>
-pub fn kaon::blockdata::block::WitnessMerkleNode::engine() -> Self::Engine
+pub fn kaon::blockdata::block::WitnessMerkleNode::engine() -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::blockdata::block::WitnessMerkleNode::eq(&self, other: &kaon::blockdata::block::WitnessMerkleNode) -> bool
 pub fn kaon::blockdata::block::WitnessMerkleNode::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::blockdata::block::WitnessMerkleNode::from(inner: kaon_hashes::sha256d::Hash) -> kaon::blockdata::block::WitnessMerkleNode
 pub fn kaon::blockdata::block::WitnessMerkleNode::from(wtxid: kaon::blockdata::transaction::Wtxid) -> Self
+pub fn kaon::blockdata::block::WitnessMerkleNode::from_byte_array(bytes: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::blockdata::block::WitnessMerkleNode::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::blockdata::block::WitnessMerkleNode::from_engine(e: Self::Engine) -> Self
+pub fn kaon::blockdata::block::WitnessMerkleNode::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::blockdata::block::WitnessMerkleNode::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> kaon::blockdata::block::WitnessMerkleNode
 pub fn kaon::blockdata::block::WitnessMerkleNode::from_raw_hash(inner: kaon_hashes::sha256d::Hash) -> kaon::blockdata::block::WitnessMerkleNode
 pub fn kaon::blockdata::block::WitnessMerkleNode::from_slice(sl: &[u8]) -> core::result::Result<kaon::blockdata::block::WitnessMerkleNode, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::block::WitnessMerkleNode::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::block::WitnessMerkleNode::from_str(s: &str) -> core::result::Result<kaon::blockdata::block::WitnessMerkleNode, Self::Err>
+pub fn kaon::blockdata::block::WitnessMerkleNode::hash(data: &[u8]) -> Self
 pub fn kaon::blockdata::block::WitnessMerkleNode::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::blockdata::block::WitnessMerkleNode::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::blockdata::block::WitnessMerkleNode::index(&self, index: I) -> &Self::Output
 pub fn kaon::blockdata::block::WitnessMerkleNode::partial_cmp(&self, other: &kaon::blockdata::block::WitnessMerkleNode) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::blockdata::block::WitnessMerkleNode::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::blockdata::block::WitnessMerkleNode::to_byte_array(self) -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::block::WitnessMerkleNode::to_byte_array(self) -> Self::Bytes
 pub fn kaon::blockdata::block::WitnessMerkleNode::to_raw_hash(self) -> kaon_hashes::sha256d::Hash
 pub fn kaon::blockdata::constants::ChainHash::as_byte_array(&self) -> &[u8; 32]
@@ -8191,6 +8263,7 @@ pub fn kaon::blockdata::script::ScriptBuf::scan_and_push_verify(&mut self)
 pub fn kaon::blockdata::script::ScriptBuf::serialize<S>(&self, serializer: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error> where S: serde::ser::Serializer
 pub fn kaon::blockdata::script::ScriptBuf::with_capacity(capacity: usize) -> Self
 pub fn kaon::blockdata::script::ScriptHash::all_zeros() -> Self
+pub fn kaon::blockdata::script::ScriptHash::as_byte_array(&self) -> &<kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::script::ScriptHash::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::blockdata::script::ScriptHash::as_raw_hash(&self) -> &kaon_hashes::hash160::Hash
 pub fn kaon::blockdata::script::ScriptHash::as_ref(&self) -> &[u8; 20]
@@ -8200,26 +8273,32 @@ pub fn kaon::blockdata::script::ScriptHash::borrow(&self) -> &[u8]
 pub fn kaon::blockdata::script::ScriptHash::clone(&self) -> kaon::blockdata::script::ScriptHash
 pub fn kaon::blockdata::script::ScriptHash::cmp(&self, other: &kaon::blockdata::script::ScriptHash) -> core::cmp::Ordering
 pub fn kaon::blockdata::script::ScriptHash::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::blockdata::script::ScriptHash, <D as serde::de::Deserializer>::Error>
-pub fn kaon::blockdata::script::ScriptHash::engine() -> Self::Engine
+pub fn kaon::blockdata::script::ScriptHash::engine() -> <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::blockdata::script::ScriptHash::eq(&self, other: &kaon::blockdata::script::ScriptHash) -> bool
 pub fn kaon::blockdata::script::ScriptHash::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::blockdata::script::ScriptHash::from(inner: kaon_hashes::hash160::Hash) -> kaon::blockdata::script::ScriptHash
 pub fn kaon::blockdata::script::ScriptHash::from(script: &kaon::blockdata::script::Script) -> kaon::blockdata::script::ScriptHash
 pub fn kaon::blockdata::script::ScriptHash::from(script: &kaon::blockdata::script::ScriptBuf) -> kaon::blockdata::script::ScriptHash
 pub fn kaon::blockdata::script::ScriptHash::from(script: kaon::blockdata::script::ScriptBuf) -> kaon::blockdata::script::ScriptHash
+pub fn kaon::blockdata::script::ScriptHash::from_byte_array(bytes: <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::blockdata::script::ScriptHash::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::blockdata::script::ScriptHash::from_engine(e: Self::Engine) -> Self
+pub fn kaon::blockdata::script::ScriptHash::from_engine(e: <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::blockdata::script::ScriptHash::from_engine(e: <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Engine) -> kaon::blockdata::script::ScriptHash
 pub fn kaon::blockdata::script::ScriptHash::from_raw_hash(inner: kaon_hashes::hash160::Hash) -> kaon::blockdata::script::ScriptHash
 pub fn kaon::blockdata::script::ScriptHash::from_slice(sl: &[u8]) -> core::result::Result<kaon::blockdata::script::ScriptHash, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::script::ScriptHash::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::script::ScriptHash::from_str(s: &str) -> core::result::Result<kaon::blockdata::script::ScriptHash, Self::Err>
+pub fn kaon::blockdata::script::ScriptHash::hash(data: &[u8]) -> Self
 pub fn kaon::blockdata::script::ScriptHash::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::blockdata::script::ScriptHash::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::blockdata::script::ScriptHash::index(&self, index: I) -> &Self::Output
 pub fn kaon::blockdata::script::ScriptHash::partial_cmp(&self, other: &kaon::blockdata::script::ScriptHash) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::blockdata::script::ScriptHash::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::blockdata::script::ScriptHash::to_byte_array(self) -> <kaon_hashes::hash160::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::script::ScriptHash::to_byte_array(self) -> Self::Bytes
 pub fn kaon::blockdata::script::ScriptHash::to_raw_hash(self) -> kaon_hashes::hash160::Hash
 pub fn kaon::blockdata::script::WScriptHash::all_zeros() -> Self
+pub fn kaon::blockdata::script::WScriptHash::as_byte_array(&self) -> &<kaon_hashes::sha256::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::script::WScriptHash::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::blockdata::script::WScriptHash::as_raw_hash(&self) -> &kaon_hashes::sha256::Hash
 pub fn kaon::blockdata::script::WScriptHash::as_ref(&self) -> &[u8; 32]
@@ -8229,23 +8308,28 @@ pub fn kaon::blockdata::script::WScriptHash::borrow(&self) -> &[u8]
 pub fn kaon::blockdata::script::WScriptHash::clone(&self) -> kaon::blockdata::script::WScriptHash
 pub fn kaon::blockdata::script::WScriptHash::cmp(&self, other: &kaon::blockdata::script::WScriptHash) -> core::cmp::Ordering
 pub fn kaon::blockdata::script::WScriptHash::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::blockdata::script::WScriptHash, <D as serde::de::Deserializer>::Error>
-pub fn kaon::blockdata::script::WScriptHash::engine() -> Self::Engine
+pub fn kaon::blockdata::script::WScriptHash::engine() -> <kaon_hashes::sha256::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::blockdata::script::WScriptHash::eq(&self, other: &kaon::blockdata::script::WScriptHash) -> bool
 pub fn kaon::blockdata::script::WScriptHash::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::blockdata::script::WScriptHash::from(inner: kaon_hashes::sha256::Hash) -> kaon::blockdata::script::WScriptHash
 pub fn kaon::blockdata::script::WScriptHash::from(script: &kaon::blockdata::script::Script) -> kaon::blockdata::script::WScriptHash
 pub fn kaon::blockdata::script::WScriptHash::from(script: &kaon::blockdata::script::ScriptBuf) -> kaon::blockdata::script::WScriptHash
 pub fn kaon::blockdata::script::WScriptHash::from(script: kaon::blockdata::script::ScriptBuf) -> kaon::blockdata::script::WScriptHash
+pub fn kaon::blockdata::script::WScriptHash::from_byte_array(bytes: <kaon_hashes::sha256::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::blockdata::script::WScriptHash::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::blockdata::script::WScriptHash::from_engine(e: Self::Engine) -> Self
+pub fn kaon::blockdata::script::WScriptHash::from_engine(e: <kaon_hashes::sha256::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::blockdata::script::WScriptHash::from_engine(e: <kaon_hashes::sha256::Hash as kaon_hashes::Hash>::Engine) -> kaon::blockdata::script::WScriptHash
 pub fn kaon::blockdata::script::WScriptHash::from_raw_hash(inner: kaon_hashes::sha256::Hash) -> kaon::blockdata::script::WScriptHash
 pub fn kaon::blockdata::script::WScriptHash::from_slice(sl: &[u8]) -> core::result::Result<kaon::blockdata::script::WScriptHash, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::script::WScriptHash::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::script::WScriptHash::from_str(s: &str) -> core::result::Result<kaon::blockdata::script::WScriptHash, Self::Err>
+pub fn kaon::blockdata::script::WScriptHash::hash(data: &[u8]) -> Self
 pub fn kaon::blockdata::script::WScriptHash::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::blockdata::script::WScriptHash::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::blockdata::script::WScriptHash::index(&self, index: I) -> &Self::Output
 pub fn kaon::blockdata::script::WScriptHash::partial_cmp(&self, other: &kaon::blockdata::script::WScriptHash) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::blockdata::script::WScriptHash::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::blockdata::script::WScriptHash::to_byte_array(self) -> <kaon_hashes::sha256::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::script::WScriptHash::to_byte_array(self) -> Self::Bytes
 pub fn kaon::blockdata::script::WScriptHash::to_raw_hash(self) -> kaon_hashes::sha256::Hash
 pub fn kaon::blockdata::script::read_scriptbool(v: &[u8]) -> bool
@@ -8431,6 +8515,7 @@ pub fn kaon::blockdata::transaction::TxOut::serialize<__S>(&self, __serializer: 
 pub fn kaon::blockdata::transaction::TxOut::size(&self) -> usize
 pub fn kaon::blockdata::transaction::TxOut::weight(&self) -> kaon_units::weight::Weight
 pub fn kaon::blockdata::transaction::Txid::all_zeros() -> Self
+pub fn kaon::blockdata::transaction::Txid::as_byte_array(&self) -> &<kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::transaction::Txid::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::blockdata::transaction::Txid::as_raw_hash(&self) -> &kaon_hashes::sha256d::Hash
 pub fn kaon::blockdata::transaction::Txid::as_ref(&self) -> &[u8; 32]
@@ -8441,22 +8526,27 @@ pub fn kaon::blockdata::transaction::Txid::cmp(&self, other: &kaon::blockdata::t
 pub fn kaon::blockdata::transaction::Txid::consensus_decode<R: kaon_io::BufRead + core::marker::Sized>(r: &mut R) -> core::result::Result<Self, kaon::consensus::encode::Error>
 pub fn kaon::blockdata::transaction::Txid::consensus_encode<W: kaon_io::Write + core::marker::Sized>(&self, w: &mut W) -> core::result::Result<usize, kaon_io::error::Error>
 pub fn kaon::blockdata::transaction::Txid::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::blockdata::transaction::Txid, <D as serde::de::Deserializer>::Error>
-pub fn kaon::blockdata::transaction::Txid::engine() -> Self::Engine
+pub fn kaon::blockdata::transaction::Txid::engine() -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::blockdata::transaction::Txid::eq(&self, other: &kaon::blockdata::transaction::Txid) -> bool
 pub fn kaon::blockdata::transaction::Txid::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::blockdata::transaction::Txid::from(inner: kaon_hashes::sha256d::Hash) -> kaon::blockdata::transaction::Txid
 pub fn kaon::blockdata::transaction::Txid::from(tx: &kaon::blockdata::transaction::Transaction) -> kaon::blockdata::transaction::Txid
 pub fn kaon::blockdata::transaction::Txid::from(tx: kaon::blockdata::transaction::Transaction) -> kaon::blockdata::transaction::Txid
+pub fn kaon::blockdata::transaction::Txid::from_byte_array(bytes: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::blockdata::transaction::Txid::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::blockdata::transaction::Txid::from_engine(e: Self::Engine) -> Self
+pub fn kaon::blockdata::transaction::Txid::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::blockdata::transaction::Txid::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> kaon::blockdata::transaction::Txid
 pub fn kaon::blockdata::transaction::Txid::from_raw_hash(inner: kaon_hashes::sha256d::Hash) -> kaon::blockdata::transaction::Txid
 pub fn kaon::blockdata::transaction::Txid::from_slice(sl: &[u8]) -> core::result::Result<kaon::blockdata::transaction::Txid, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::transaction::Txid::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::transaction::Txid::from_str(s: &str) -> core::result::Result<kaon::blockdata::transaction::Txid, Self::Err>
+pub fn kaon::blockdata::transaction::Txid::hash(data: &[u8]) -> Self
 pub fn kaon::blockdata::transaction::Txid::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::blockdata::transaction::Txid::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::blockdata::transaction::Txid::index(&self, index: I) -> &Self::Output
 pub fn kaon::blockdata::transaction::Txid::partial_cmp(&self, other: &kaon::blockdata::transaction::Txid) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::blockdata::transaction::Txid::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::blockdata::transaction::Txid::to_byte_array(self) -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::transaction::Txid::to_byte_array(self) -> Self::Bytes
 pub fn kaon::blockdata::transaction::Txid::to_raw_hash(self) -> kaon_hashes::sha256d::Hash
 pub fn kaon::blockdata::transaction::Version::clone(&self) -> kaon::blockdata::transaction::Version
@@ -8472,6 +8562,7 @@ pub fn kaon::blockdata::transaction::Version::non_standard(version: i32) -> kaon
 pub fn kaon::blockdata::transaction::Version::partial_cmp(&self, other: &kaon::blockdata::transaction::Version) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::blockdata::transaction::Version::serialize<__S>(&self, __serializer: __S) -> core::result::Result<<__S as serde::ser::Serializer>::Ok, <__S as serde::ser::Serializer>::Error> where __S: serde::ser::Serializer
 pub fn kaon::blockdata::transaction::Wtxid::all_zeros() -> Self
+pub fn kaon::blockdata::transaction::Wtxid::as_byte_array(&self) -> &<kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::transaction::Wtxid::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::blockdata::transaction::Wtxid::as_raw_hash(&self) -> &kaon_hashes::sha256d::Hash
 pub fn kaon::blockdata::transaction::Wtxid::as_ref(&self) -> &[u8; 32]
@@ -8482,22 +8573,27 @@ pub fn kaon::blockdata::transaction::Wtxid::cmp(&self, other: &kaon::blockdata::
 pub fn kaon::blockdata::transaction::Wtxid::consensus_decode<R: kaon_io::BufRead + core::marker::Sized>(r: &mut R) -> core::result::Result<Self, kaon::consensus::encode::Error>
 pub fn kaon::blockdata::transaction::Wtxid::consensus_encode<W: kaon_io::Write + core::marker::Sized>(&self, w: &mut W) -> core::result::Result<usize, kaon_io::error::Error>
 pub fn kaon::blockdata::transaction::Wtxid::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::blockdata::transaction::Wtxid, <D as serde::de::Deserializer>::Error>
-pub fn kaon::blockdata::transaction::Wtxid::engine() -> Self::Engine
+pub fn kaon::blockdata::transaction::Wtxid::engine() -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine
 pub fn kaon::blockdata::transaction::Wtxid::eq(&self, other: &kaon::blockdata::transaction::Wtxid) -> bool
 pub fn kaon::blockdata::transaction::Wtxid::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::blockdata::transaction::Wtxid::from(inner: kaon_hashes::sha256d::Hash) -> kaon::blockdata::transaction::Wtxid
 pub fn kaon::blockdata::transaction::Wtxid::from(tx: &kaon::blockdata::transaction::Transaction) -> kaon::blockdata::transaction::Wtxid
 pub fn kaon::blockdata::transaction::Wtxid::from(tx: kaon::blockdata::transaction::Transaction) -> kaon::blockdata::transaction::Wtxid
+pub fn kaon::blockdata::transaction::Wtxid::from_byte_array(bytes: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::blockdata::transaction::Wtxid::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::blockdata::transaction::Wtxid::from_engine(e: Self::Engine) -> Self
+pub fn kaon::blockdata::transaction::Wtxid::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::blockdata::transaction::Wtxid::from_engine(e: <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Engine) -> kaon::blockdata::transaction::Wtxid
 pub fn kaon::blockdata::transaction::Wtxid::from_raw_hash(inner: kaon_hashes::sha256d::Hash) -> kaon::blockdata::transaction::Wtxid
 pub fn kaon::blockdata::transaction::Wtxid::from_slice(sl: &[u8]) -> core::result::Result<kaon::blockdata::transaction::Wtxid, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::transaction::Wtxid::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::blockdata::transaction::Wtxid::from_str(s: &str) -> core::result::Result<kaon::blockdata::transaction::Wtxid, Self::Err>
+pub fn kaon::blockdata::transaction::Wtxid::hash(data: &[u8]) -> Self
 pub fn kaon::blockdata::transaction::Wtxid::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::blockdata::transaction::Wtxid::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::blockdata::transaction::Wtxid::index(&self, index: I) -> &Self::Output
 pub fn kaon::blockdata::transaction::Wtxid::partial_cmp(&self, other: &kaon::blockdata::transaction::Wtxid) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::blockdata::transaction::Wtxid::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::blockdata::transaction::Wtxid::to_byte_array(self) -> <kaon_hashes::sha256d::Hash as kaon_hashes::Hash>::Bytes
 pub fn kaon::blockdata::transaction::Wtxid::to_byte_array(self) -> Self::Bytes
 pub fn kaon::blockdata::transaction::Wtxid::to_raw_hash(self) -> kaon_hashes::sha256d::Hash
 pub fn kaon::blockdata::transaction::effective_value(fee_rate: kaon_units::fee_rate::FeeRate, satisfaction_weight: kaon_units::weight::Weight, value: kaon_units::amount::Amount) -> core::option::Option<kaon_units::amount::SignedAmount>
@@ -9501,6 +9597,7 @@ pub fn kaon::taproot::TapLeaf::hash<__H: core::hash::Hasher>(&self, state: &mut 
 pub fn kaon::taproot::TapLeaf::partial_cmp(&self, other: &kaon::taproot::TapLeaf) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::taproot::TapLeaf::serialize<__S>(&self, __serializer: __S) -> core::result::Result<<__S as serde::ser::Serializer>::Ok, <__S as serde::ser::Serializer>::Error> where __S: serde::ser::Serializer
 pub fn kaon::taproot::TapLeafHash::all_zeros() -> Self
+pub fn kaon::taproot::TapLeafHash::as_byte_array(&self) -> &<kaon_hashes::sha256t::Hash<kaon::taproot::TapLeafTag> as kaon_hashes::Hash>::Bytes
 pub fn kaon::taproot::TapLeafHash::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::taproot::TapLeafHash::as_raw_hash(&self) -> &kaon_hashes::sha256t::Hash<kaon::taproot::TapLeafTag>
 pub fn kaon::taproot::TapLeafHash::as_ref(&self) -> &[u8; 32]
@@ -9511,22 +9608,27 @@ pub fn kaon::taproot::TapLeafHash::cmp(&self, other: &kaon::taproot::TapLeafHash
 pub fn kaon::taproot::TapLeafHash::consensus_decode<R: kaon_io::BufRead + core::marker::Sized>(r: &mut R) -> core::result::Result<Self, kaon::consensus::encode::Error>
 pub fn kaon::taproot::TapLeafHash::consensus_encode<W: kaon_io::Write + core::marker::Sized>(&self, w: &mut W) -> core::result::Result<usize, kaon_io::error::Error>
 pub fn kaon::taproot::TapLeafHash::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::taproot::TapLeafHash, <D as serde::de::Deserializer>::Error>
-pub fn kaon::taproot::TapLeafHash::engine() -> Self::Engine
+pub fn kaon::taproot::TapLeafHash::engine() -> <kaon_hashes::sha256t::Hash<kaon::taproot::TapLeafTag> as kaon_hashes::Hash>::Engine
 pub fn kaon::taproot::TapLeafHash::eq(&self, other: &kaon::taproot::TapLeafHash) -> bool
 pub fn kaon::taproot::TapLeafHash::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::taproot::TapLeafHash::from(inner: kaon_hashes::sha256t::Hash<kaon::taproot::TapLeafTag>) -> kaon::taproot::TapLeafHash
 pub fn kaon::taproot::TapLeafHash::from(script_path: kaon::sighash::ScriptPath<'s>) -> kaon::taproot::TapLeafHash
+pub fn kaon::taproot::TapLeafHash::from_byte_array(bytes: <kaon_hashes::sha256t::Hash<kaon::taproot::TapLeafTag> as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::taproot::TapLeafHash::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::taproot::TapLeafHash::from_engine(e: Self::Engine) -> Self
+pub fn kaon::taproot::TapLeafHash::from_engine(e: <kaon_hashes::sha256t::Hash<kaon::taproot::TapLeafTag> as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::taproot::TapLeafHash::from_engine(e: <kaon_hashes::sha256t::Hash<kaon::taproot::TapLeafTag> as kaon_hashes::Hash>::Engine) -> kaon::taproot::TapLeafHash
 pub fn kaon::taproot::TapLeafHash::from_raw_hash(inner: kaon_hashes::sha256t::Hash<kaon::taproot::TapLeafTag>) -> kaon::taproot::TapLeafHash
 pub fn kaon::taproot::TapLeafHash::from_script(script: &kaon::blockdata::script::Script, ver: kaon::taproot::LeafVersion) -> kaon::taproot::TapLeafHash
 pub fn kaon::taproot::TapLeafHash::from_slice(sl: &[u8]) -> core::result::Result<kaon::taproot::TapLeafHash, kaon_hashes::FromSliceError>
 pub fn kaon::taproot::TapLeafHash::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::taproot::TapLeafHash::from_str(s: &str) -> core::result::Result<kaon::taproot::TapLeafHash, Self::Err>
+pub fn kaon::taproot::TapLeafHash::hash(data: &[u8]) -> Self
 pub fn kaon::taproot::TapLeafHash::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::taproot::TapLeafHash::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::taproot::TapLeafHash::index(&self, index: I) -> &Self::Output
 pub fn kaon::taproot::TapLeafHash::partial_cmp(&self, other: &kaon::taproot::TapLeafHash) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::taproot::TapLeafHash::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::taproot::TapLeafHash::to_byte_array(self) -> <kaon_hashes::sha256t::Hash<kaon::taproot::TapLeafTag> as kaon_hashes::Hash>::Bytes
 pub fn kaon::taproot::TapLeafHash::to_byte_array(self) -> Self::Bytes
 pub fn kaon::taproot::TapLeafHash::to_raw_hash(self) -> kaon_hashes::sha256t::Hash<kaon::taproot::TapLeafTag>
 pub fn kaon::taproot::TapLeafTag::clone(&self) -> kaon::taproot::TapLeafTag
@@ -9537,6 +9639,7 @@ pub fn kaon::taproot::TapLeafTag::eq(&self, other: &kaon::taproot::TapLeafTag) -
 pub fn kaon::taproot::TapLeafTag::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
 pub fn kaon::taproot::TapLeafTag::partial_cmp(&self, other: &kaon::taproot::TapLeafTag) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::taproot::TapNodeHash::all_zeros() -> Self
+pub fn kaon::taproot::TapNodeHash::as_byte_array(&self) -> &<kaon_hashes::sha256t::Hash<kaon::taproot::TapBranchTag> as kaon_hashes::Hash>::Bytes
 pub fn kaon::taproot::TapNodeHash::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::taproot::TapNodeHash::as_raw_hash(&self) -> &kaon_hashes::sha256t::Hash<kaon::taproot::TapBranchTag>
 pub fn kaon::taproot::TapNodeHash::as_ref(&self) -> &[u8; 32]
@@ -9546,25 +9649,30 @@ pub fn kaon::taproot::TapNodeHash::borrow(&self) -> &[u8]
 pub fn kaon::taproot::TapNodeHash::clone(&self) -> kaon::taproot::TapNodeHash
 pub fn kaon::taproot::TapNodeHash::cmp(&self, other: &kaon::taproot::TapNodeHash) -> core::cmp::Ordering
 pub fn kaon::taproot::TapNodeHash::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::taproot::TapNodeHash, <D as serde::de::Deserializer>::Error>
-pub fn kaon::taproot::TapNodeHash::engine() -> Self::Engine
+pub fn kaon::taproot::TapNodeHash::engine() -> <kaon_hashes::sha256t::Hash<kaon::taproot::TapBranchTag> as kaon_hashes::Hash>::Engine
 pub fn kaon::taproot::TapNodeHash::eq(&self, other: &kaon::taproot::TapNodeHash) -> bool
 pub fn kaon::taproot::TapNodeHash::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::taproot::TapNodeHash::from(inner: kaon_hashes::sha256t::Hash<kaon::taproot::TapBranchTag>) -> kaon::taproot::TapNodeHash
 pub fn kaon::taproot::TapNodeHash::from(leaf: &kaon::taproot::LeafNode) -> kaon::taproot::TapNodeHash
 pub fn kaon::taproot::TapNodeHash::from(leaf: kaon::taproot::LeafNode) -> kaon::taproot::TapNodeHash
 pub fn kaon::taproot::TapNodeHash::from(leaf: kaon::taproot::TapLeafHash) -> kaon::taproot::TapNodeHash
+pub fn kaon::taproot::TapNodeHash::from_byte_array(bytes: <kaon_hashes::sha256t::Hash<kaon::taproot::TapBranchTag> as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::taproot::TapNodeHash::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::taproot::TapNodeHash::from_engine(e: Self::Engine) -> Self
+pub fn kaon::taproot::TapNodeHash::from_engine(e: <kaon_hashes::sha256t::Hash<kaon::taproot::TapBranchTag> as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::taproot::TapNodeHash::from_engine(e: <kaon_hashes::sha256t::Hash<kaon::taproot::TapBranchTag> as kaon_hashes::Hash>::Engine) -> kaon::taproot::TapNodeHash
 pub fn kaon::taproot::TapNodeHash::from_node_hashes(a: kaon::taproot::TapNodeHash, b: kaon::taproot::TapNodeHash) -> kaon::taproot::TapNodeHash
 pub fn kaon::taproot::TapNodeHash::from_raw_hash(inner: kaon_hashes::sha256t::Hash<kaon::taproot::TapBranchTag>) -> kaon::taproot::TapNodeHash
 pub fn kaon::taproot::TapNodeHash::from_script(script: &kaon::blockdata::script::Script, ver: kaon::taproot::LeafVersion) -> kaon::taproot::TapNodeHash
 pub fn kaon::taproot::TapNodeHash::from_slice(sl: &[u8]) -> core::result::Result<kaon::taproot::TapNodeHash, kaon_hashes::FromSliceError>
 pub fn kaon::taproot::TapNodeHash::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::taproot::TapNodeHash::from_str(s: &str) -> core::result::Result<kaon::taproot::TapNodeHash, Self::Err>
+pub fn kaon::taproot::TapNodeHash::hash(data: &[u8]) -> Self
 pub fn kaon::taproot::TapNodeHash::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::taproot::TapNodeHash::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::taproot::TapNodeHash::index(&self, index: I) -> &Self::Output
 pub fn kaon::taproot::TapNodeHash::partial_cmp(&self, other: &kaon::taproot::TapNodeHash) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::taproot::TapNodeHash::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::taproot::TapNodeHash::to_byte_array(self) -> <kaon_hashes::sha256t::Hash<kaon::taproot::TapBranchTag> as kaon_hashes::Hash>::Bytes
 pub fn kaon::taproot::TapNodeHash::to_byte_array(self) -> Self::Bytes
 pub fn kaon::taproot::TapNodeHash::to_raw_hash(self) -> kaon_hashes::sha256t::Hash<kaon::taproot::TapBranchTag>
 pub fn kaon::taproot::TapTree::clone(&self) -> kaon::taproot::TapTree
@@ -9580,6 +9688,7 @@ pub fn kaon::taproot::TapTree::serialize<__S>(&self, __serializer: __S) -> core:
 pub fn kaon::taproot::TapTree::try_from(builder: kaon::taproot::TaprootBuilder) -> core::result::Result<Self, Self::Error>
 pub fn kaon::taproot::TapTree::try_from(node_info: kaon::taproot::NodeInfo) -> core::result::Result<Self, Self::Error>
 pub fn kaon::taproot::TapTweakHash::all_zeros() -> Self
+pub fn kaon::taproot::TapTweakHash::as_byte_array(&self) -> &<kaon_hashes::sha256t::Hash<kaon::taproot::TapTweakTag> as kaon_hashes::Hash>::Bytes
 pub fn kaon::taproot::TapTweakHash::as_byte_array(&self) -> &Self::Bytes
 pub fn kaon::taproot::TapTweakHash::as_raw_hash(&self) -> &kaon_hashes::sha256t::Hash<kaon::taproot::TapTweakTag>
 pub fn kaon::taproot::TapTweakHash::as_ref(&self) -> &[u8; 32]
@@ -9588,23 +9697,28 @@ pub fn kaon::taproot::TapTweakHash::borrow(&self) -> &[u8]
 pub fn kaon::taproot::TapTweakHash::clone(&self) -> kaon::taproot::TapTweakHash
 pub fn kaon::taproot::TapTweakHash::cmp(&self, other: &kaon::taproot::TapTweakHash) -> core::cmp::Ordering
 pub fn kaon::taproot::TapTweakHash::deserialize<D: serde::de::Deserializer<'de>>(d: D) -> core::result::Result<kaon::taproot::TapTweakHash, <D as serde::de::Deserializer>::Error>
-pub fn kaon::taproot::TapTweakHash::engine() -> Self::Engine
+pub fn kaon::taproot::TapTweakHash::engine() -> <kaon_hashes::sha256t::Hash<kaon::taproot::TapTweakTag> as kaon_hashes::Hash>::Engine
 pub fn kaon::taproot::TapTweakHash::eq(&self, other: &kaon::taproot::TapTweakHash) -> bool
 pub fn kaon::taproot::TapTweakHash::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub fn kaon::taproot::TapTweakHash::from(inner: kaon_hashes::sha256t::Hash<kaon::taproot::TapTweakTag>) -> kaon::taproot::TapTweakHash
 pub fn kaon::taproot::TapTweakHash::from(spend_info: &kaon::taproot::TaprootSpendInfo) -> kaon::taproot::TapTweakHash
 pub fn kaon::taproot::TapTweakHash::from(spend_info: kaon::taproot::TaprootSpendInfo) -> kaon::taproot::TapTweakHash
+pub fn kaon::taproot::TapTweakHash::from_byte_array(bytes: <kaon_hashes::sha256t::Hash<kaon::taproot::TapTweakTag> as kaon_hashes::Hash>::Bytes) -> Self
 pub fn kaon::taproot::TapTweakHash::from_byte_array(bytes: Self::Bytes) -> Self
-pub fn kaon::taproot::TapTweakHash::from_engine(e: Self::Engine) -> Self
+pub fn kaon::taproot::TapTweakHash::from_engine(e: <kaon_hashes::sha256t::Hash<kaon::taproot::TapTweakTag> as kaon_hashes::Hash>::Engine) -> Self
+pub fn kaon::taproot::TapTweakHash::from_engine(e: <kaon_hashes::sha256t::Hash<kaon::taproot::TapTweakTag> as kaon_hashes::Hash>::Engine) -> kaon::taproot::TapTweakHash
 pub fn kaon::taproot::TapTweakHash::from_key_and_tweak(internal_key: kaon::key::UntweakedPublicKey, merkle_root: core::option::Option<kaon::taproot::TapNodeHash>) -> kaon::taproot::TapTweakHash
 pub fn kaon::taproot::TapTweakHash::from_raw_hash(inner: kaon_hashes::sha256t::Hash<kaon::taproot::TapTweakTag>) -> kaon::taproot::TapTweakHash
 pub fn kaon::taproot::TapTweakHash::from_slice(sl: &[u8]) -> core::result::Result<kaon::taproot::TapTweakHash, kaon_hashes::FromSliceError>
 pub fn kaon::taproot::TapTweakHash::from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, kaon_hashes::FromSliceError>
 pub fn kaon::taproot::TapTweakHash::from_str(s: &str) -> core::result::Result<kaon::taproot::TapTweakHash, Self::Err>
+pub fn kaon::taproot::TapTweakHash::hash(data: &[u8]) -> Self
 pub fn kaon::taproot::TapTweakHash::hash<__H: core::hash::Hasher>(&self, state: &mut __H)
+pub fn kaon::taproot::TapTweakHash::hash_byte_chunks<B, I>(byte_slices: I) -> Self where B: core::convert::AsRef<[u8]>, I: core::iter::traits::collect::IntoIterator<Item = B>
 pub fn kaon::taproot::TapTweakHash::index(&self, index: I) -> &Self::Output
 pub fn kaon::taproot::TapTweakHash::partial_cmp(&self, other: &kaon::taproot::TapTweakHash) -> core::option::Option<core::cmp::Ordering>
 pub fn kaon::taproot::TapTweakHash::serialize<S: serde::ser::Serializer>(&self, s: S) -> core::result::Result<<S as serde::ser::Serializer>::Ok, <S as serde::ser::Serializer>::Error>
+pub fn kaon::taproot::TapTweakHash::to_byte_array(self) -> <kaon_hashes::sha256t::Hash<kaon::taproot::TapTweakTag> as kaon_hashes::Hash>::Bytes
 pub fn kaon::taproot::TapTweakHash::to_byte_array(self) -> Self::Bytes
 pub fn kaon::taproot::TapTweakHash::to_raw_hash(self) -> kaon_hashes::sha256t::Hash<kaon::taproot::TapTweakTag>
 pub fn kaon::taproot::TapTweakHash::to_scalar(self) -> secp256k1::scalar::Scalar

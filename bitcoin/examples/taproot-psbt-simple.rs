@@ -24,7 +24,6 @@ use std::collections::BTreeMap;
 use std::str::FromStr;
 
 use kaon::bip32::{ChildNumber, DerivationPath, Fingerprint, IntoDerivationPath, Xpriv, Xpub};
-use kaon::hashes::Hash;
 use kaon::key::UntweakedPublicKey;
 use kaon::locktime::absolute;
 use kaon::psbt::Input;
