@@ -1,4 +1,4 @@
-use kaon::hashes::{sha512_256, Hash, HashEngine};
+use kaon::hashes::{sha512_256, HashEngine};
 use honggfuzz::fuzz;
 
 fn do_test(data: &[u8]) {

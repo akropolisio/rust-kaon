@@ -4168,7 +4168,7 @@ pub kaon::KnownHrp::Regtest
 pub kaon::KnownHrp::Testnets
 pub kaon::MerkleBlock::header: kaon::blockdata::block::Header
 pub kaon::MerkleBlock::txn: kaon::merkle_tree::PartialMerkleTree
-pub kaon::Network::Mainnet
+pub kaon::Network::Bitcoin
 pub kaon::Network::Regtest
 pub kaon::Network::Signet
 pub kaon::Network::Testnet
@@ -4484,7 +4484,7 @@ pub kaon::merkle_tree::MerkleBlockError::NotAllHashesConsumed
 pub kaon::merkle_tree::MerkleBlockError::NotEnoughBits
 pub kaon::merkle_tree::MerkleBlockError::TooManyHashes
 pub kaon::merkle_tree::MerkleBlockError::TooManyTransactions
-pub kaon::network::Network::Mainnet
+pub kaon::network::Network::Bitcoin
 pub kaon::network::Network::Regtest
 pub kaon::network::Network::Signet
 pub kaon::network::Network::Testnet
@@ -5107,7 +5107,7 @@ pub const kaon::blockdata::transaction::Version::TWO: Self
 pub const kaon::blockdata::transaction::Wtxid::DISPLAY_BACKWARD: bool
 pub const kaon::blockdata::transaction::Wtxid::LEN: usize
 pub const kaon::consensus::encode::MAX_VEC_SIZE: usize = 4_000_000usize
-pub const kaon::consensus::params::Params::KAON: kaon::consensus::params::Params
+pub const kaon::consensus::params::Params::MAINNET: kaon::consensus::params::Params
 pub const kaon::consensus::params::Params::MAINNET: kaon::consensus::params::Params
 pub const kaon::consensus::params::Params::REGTEST: kaon::consensus::params::Params
 pub const kaon::consensus::params::Params::SIGNET: kaon::consensus::params::Params
@@ -5411,7 +5411,7 @@ pub const kaon::pow::Target::ZERO: kaon::pow::Target
 pub const kaon::psbt::Psbt::DEFAULT_MAX_FEE_RATE: kaon_units::fee_rate::FeeRate
 pub const kaon::script::witness_program::MAX_SIZE: usize = 40usize
 pub const kaon::script::witness_program::MIN_SIZE: usize = 2usize
-pub const kaon::sign_message::KAON_SIGNED_MSG_PREFIX: &[u8]
+pub const kaon::sign_message::kaon_SIGNED_MSG_PREFIX: &[u8]
 pub const kaon::taproot::TAPROOT_ANNEX_PREFIX: u8 = 80u8
 pub const kaon::taproot::TAPROOT_CONTROL_BASE_SIZE: usize = 33usize
 pub const kaon::taproot::TAPROOT_CONTROL_MAX_NODE_COUNT: usize = 128usize

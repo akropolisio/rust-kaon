@@ -4,7 +4,6 @@
 
 use std::str::FromStr;
 
-use kaon::hashes::Hash;
 use kaon::key::{Keypair, TapTweak, TweakedKeypair, UntweakedPublicKey};
 use kaon::locktime::absolute;
 use kaon::secp256k1::{rand, Message, Secp256k1, SecretKey, Signing, Verification};
