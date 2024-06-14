@@ -1,5 +1,8 @@
 # Rust Bitcoin Logo
 
+##
+NOTE: Logo for Kaon would be updated later.
+
 ## Files
 
 Included are:

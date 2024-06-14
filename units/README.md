@@ -1,6 +1,7 @@
-# Bitcoin Units
+# Bitcoin/Kaon Units
+This crate provides basic Bitcoin/Kaon numeric units such as `Amount`
 
-This crate provides basic Bitcoin numeric units such as `Amount`.
+Note: Kaon Network uses int128 to store amounts.
 
 ## Minimum Supported Rust Version (MSRV)
 

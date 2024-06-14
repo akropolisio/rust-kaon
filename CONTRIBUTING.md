@@ -8,6 +8,13 @@ implementation and other Rust Bitcoin-related projects, which are hosted in the
 mostly guidelines, not rules. Use your best judgment, and feel free to propose
 changes to this document in a pull request.
 
+# Contributing to rust-kaon
+
+The Kaon Network follows general guidlines of rust-bitcoin. 
+If you have some questions, ask them in the repo of the current fork.
+
+Thank you for your interest and support!
+
 #### Table Of Contents
 
 - [General](#general)

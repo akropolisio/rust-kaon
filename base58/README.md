@@ -1,13 +1,13 @@
-# Bitcoin base58 encoding
+# Bitcoin/Kaon base58 encoding
 
-This crate provides encoding and decoding of base58 strings as defined by the Bitcoin ecosystem
+This crate provides encoding and decoding of base58 strings as defined by the Bitcoin/Kaon ecosystem
 including the checksum.
 
 There are a bunch of crates on crates.io that implement base58 encoding and decoding. The more
 obviously named ones differ from this crate because:
 
 1. [bitcoin-base58](https://crates.io/crates/bitcoin-base58) is transpiled from the C++ code in
-   Bitcoin Core as part of a large long-term transpilation project, whereas this crate is a pure
+   Bitcoin/Kaon Core as part of a large long-term transpilation project, whereas this crate is a pure
    Rust implementation intended to be production-ready and to provide an Rust-idiomatic API.
 
 2. [base58](https://crates.io/crates/base58) implements parsing but does not validate checksums (see
@@ -19,6 +19,12 @@ obviously named ones differ from this crate because:
 
 This crate uses [bitcoin_hashes](https://crates.io/crates/bitcoin_hashes) when hashing to calculate
 the checksum.
+
+Note: Kaon Core provides its own reconfigured versions of all those libraries at the moment. There is intention for them to be completely replaced by original bitcoin rust implementations though since it is under development right now we are using these wrappers. They aren't deployed to crate.io yet.
+
+Naming correlations:
+- bitcoin_hashes -> kaon_hashes
+
 
 ## Minimum Supported Rust Version (MSRV)
 

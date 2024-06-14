@@ -1,4 +1,4 @@
-# rust-bitcoin workflow notes
+# rust-kaon workflow notes
 
 We are attempting to run max 20 parallel jobs using GitHub actions (usage limit for free tier).
 

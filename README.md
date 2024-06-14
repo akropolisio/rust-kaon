@@ -1,20 +1,20 @@
 <div align="center">
-  <h1>Rust Bitcoin</h1>
+  <h1>Rust Bitcoin/Kaon edition</h1>
 
   <img alt="Rust Bitcoin logo by Hunter Trujillo, see license and source files under /logo" src="./logo/rust-bitcoin.png" width="300" />
 
   <p>Library with support for de/serialization, parsing and executing on data-structures
-    and network messages related to Bitcoin.
+    and network messages related to Kaon Network.
   </p>
 
   <p>
-    <a href="https://crates.io/crates/bitcoin"><img alt="Crate Info" src="https://img.shields.io/crates/v/bitcoin.svg"/></a>
-    <a href="https://github.com/rust-bitcoin/rust-bitcoin/blob/master/LICENSE"><img alt="CC0 1.0 Universal Licensed" src="https://img.shields.io/badge/license-CC0--1.0-blue.svg"/></a>
-    <a href="https://github.com/rust-bitcoin/rust-bitcoin/actions?query=workflow%3AContinuous%20integration"><img alt="CI Status" src="https://github.com/rust-bitcoin/rust-bitcoin/workflows/Continuous%20integration/badge.svg"></a>
+    <a href="https://crates.io/crates/kaon"><img alt="Crate Info" src="https://img.shields.io/crates/v/bitcoin.svg"/></a>
+    <a href="https://github.com/akropolisio/rust-kaon/blob/master/LICENSE"><img alt="CC0 1.0 Universal Licensed" src="https://img.shields.io/badge/license-CC0--1.0-blue.svg"/></a>
+    <a href="https://github.com/akropolisio/rust-kaon/actions?query=workflow%3AContinuous%20integration"><img alt="CI Status" src="https://github.com/akropolisio/rust-kaon/workflows/Continuous%20integration/badge.svg"></a>
     <a href="https://docs.rs/bitcoin"><img alt="API Docs" src="https://img.shields.io/badge/docs.rs-bitcoin-green"/></a>
     <a href="https://blog.rust-lang.org/2021/11/01/Rust-1.56.1.html"><img alt="Rustc Version 1.56.1+" src="https://img.shields.io/badge/rustc-1.56.1%2B-lightgrey.svg"/></a>
     <a href="https://gnusha.org/bitcoin-rust/"><img alt="Chat on IRC" src="https://img.shields.io/badge/irc-%23bitcoin--rust%20on%20libera.chat-blue"></a>
-    <a href="https://github.com/model-checking/kani"><imp alt="kani" src="https://github.com/rust-bitcoin/rust-bitcoin/actions/workflows/kani.yaml/badge.svg"></a>
+    <a href="https://github.com/model-checking/kani"><imp alt="kani" src="https://github.com/akropolisio/rust-kaon/actions/workflows/kani.yaml/badge.svg"></a>
   </p>
 </div>
 
@@ -22,14 +22,14 @@
 
 Supports (or should support)
 
-* De/serialization of Bitcoin protocol network messages
+* De/serialization of Bitcoin/Kaon protocol network messages
 * De/serialization of blocks and transactions
 * Script de/serialization
 * Private keys and address creation, de/serialization and validation (including full BIP32 support)
 * PSBT v0 de/serialization and all but the Input Finalizer role. Use [rust-miniscript](https://docs.rs/miniscript/latest/miniscript/psbt/index.html) to finalize.
 
-For JSONRPC interaction with Bitcoin Core, it is recommended to use
-[rust-bitcoincore-rpc](https://github.com/rust-bitcoin/rust-bitcoincore-rpc).
+For JSONRPC interaction with Kaon Core, it is recommended to use
+[rust-kaoncore-rpc](https://github.com/akropolisio/rust-kaoncore-rpc). 
 
 It is recommended to always use [cargo-crev](https://github.com/crev-dev/cargo-crev) to verify the
 trustworthiness of each of your dependencies, including this one.
@@ -40,12 +40,31 @@ trustworthiness of each of your dependencies, including this one.
 
 This library **must not** be used for consensus code (i.e. fully validating blockchain data). It
 technically supports doing this, but doing so is very ill-advised because there are many deviations,
-known and unknown, between this library and the Bitcoin Core reference implementation. In a
-consensus based cryptocurrency such as Bitcoin it is critical that all parties are using the same
+known and unknown, between this library and the Kaon Core reference implementation. In a
+consensus based cryptocurrency such as Kaon Network it is critical that all parties are using the same
 rules to validate data, and this library is simply unable to implement the same rules as Core.
 
 Given the complexity of both C++ and Rust, it is unlikely that this will ever be fixed, and there
 are no plans to do so. Of course, patches to fix specific consensus incompatibilities are welcome.
+
+## Key differences from original Bitcoin-Rust
+
+Since Kaon uses int128 containers to store values of transactions, it affects sizes of transactions, the way they are processing and storing resulted values. Please keep in mind that since the value can be negative, using simple compact number encryption won't due to 0x80 byte collision. Kaon uses its own ZigZag implementation to solve this. Also it is important to know that script sigs are also supporting int128 values there.
+
+Another important note that Kaon has EVM and thus it has additional opcodes and standard transaction types.
+
+Kaon utilizes double-hashing.
+
+Schemes of blocks and transactions has some fields specific for dPos consensus and fields needed to provide transparent EVM state and gas prices.
+
+Also since Kaon supports cascade signature from the Metamask it also supports signing by RLP transaction the UTXO transaction which means that there is one completely different standard signature type aside from ECDSA, Taproots and others. 
+
+At the moment the node is supported only partially. Tests aren't supported due to difference in magic bytes. 
+There is a plan to provide a full support later.
+
+Also it is important to note that the original Bitcoin Rust repository interpreting CompactSize as a VarInt which is incorrect. But normally that wouldn't be a problem due to rare use of VarInt in the Bitcoin Core's code. Yet it may become critical when the application tries to read blockdata from Bitcoin data folder. For the Kaon it has significant value since basically every amount value in the chain stored using very similar algorithm. 
+
+We will create a PR to the Bitcoin Rust with the fix later.
 
 ### Support for 16-bit pointer sizes
 
@@ -92,7 +111,7 @@ review them.
 Rust can be installed using your package manager of choice or [rustup.rs](https://rustup.rs). The
 former way is considered more secure since it typically doesn't involve trust in the CA system. But
 you should be aware that the version of Rust shipped by your distribution might be out of date.
-Generally this isn't a problem for `rust-bitcoin` since we support much older versions than the
+Generally this isn't a problem for `rust-kaon` since we support much older versions than the
 current stable one (see MSRV section).
 
 ## Building
@@ -107,8 +126,8 @@ be usable without `std`. Both can be enabled without conflict.
 The library can be built and tested using [`cargo`](https://github.com/rust-lang/cargo/):
 
 ```
-git clone git@github.com:rust-bitcoin/rust-bitcoin.git
-cd rust-bitcoin
+git clone git@github.com:akropolisio/rust-kaon.git
+cd rust-kaon
 cargo build
 ```
 
@@ -120,6 +139,8 @@ cargo test
 
 Please refer to the [`cargo` documentation](https://doc.rust-lang.org/stable/cargo/) for more
 detailed instructions.
+
+It is recommended to use rust-analyzer with VS Code but at the moment it's not supporting use macro_use with re-export of derived feature "serde", so the feature "rust-analyzer.diagnostics" is disabled for now. You can turn it on but at that case you'll have to ignore errors about unresolved-external-crate.
 
 ### Just
 
@@ -194,16 +215,6 @@ git config --local core.hooksPath githooks/
 ```
 
 Alternatively add symlinks in your `.git/hooks` directory to any of the githooks we provide.
-
-## Policy on Altcoins/Altchains
-
-Since the altcoin landscape includes projects which [frequently appear and disappear, and are poorly
-designed anyway](https://download.wpsoftware.net/bitcoin/alts.pdf) we do not support any altcoins.
-Supporting Bitcoin properly is already difficult enough and we do not want to increase the
-maintenance burden and decrease API stability by adding support for other coins.
-
-Our code is public domain so by all means fork it and go wild :)
-
 
 ## Release Notes
 
