@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin taproot keys.
+//! Bitcoin/Kaon taproot keys.
 //!
-//! This module provides taproot keys used in Bitcoin (including reexporting secp256k1 keys).
+//! This module provides taproot keys used in Bitcoin/Kaon (including reexporting secp256k1 keys).
 
 use core::fmt;
 
 use internals::write_err;
-use io::Write;
+use io::{BufRead, Write};
 
 use crate::prelude::*;
 use crate::sighash::{InvalidSighashTypeError, TapSighashType};
@@ -83,6 +83,24 @@ impl Signature {
             65
         };
         SerializedSignature::from_raw_parts(buf, len)
+    }
+}
+
+impl Default for Signature {
+    fn default() -> Signature {
+        Signature::from_slice(&[0; serialized_signature::MAX_LEN]).unwrap() // TODO: proper init
+    }
+}
+
+impl Encodable for Signature {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+        w.write(&self.serialize())
+    }
+}
+
+impl Decodable for Signature {
+    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+        Signature::consensus_decode_from_finite_reader(r)
     }
 }
 
