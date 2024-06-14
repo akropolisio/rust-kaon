@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Provides type `Height` and `Time` types used by the `rust-bitcoin` `absolute::LockTime` type.
+//! Provides type `Height` and `Time` types used by the `rust-kaon` `absolute::LockTime` type.
 
 use core::fmt;
 
@@ -12,18 +12,19 @@ use crate::parse::ParseIntError;
 #[cfg(feature = "alloc")]
 use crate::prelude::*;
 
-/// The Threshold for deciding whether a lock time value is a height or a time (see [Bitcoin Core]).
+/// The Threshold for deciding whether a lock time value is a height or a time (see [Kaon Core]).
 ///
 /// `LockTime` values _below_ the threshold are interpreted as block heights, values _above_ (or
 /// equal to) the threshold are interpreted as block times (UNIX timestamp, seconds since epoch).
 ///
-/// Bitcoin is able to safely use this value because a block height greater than 500,000,000 would
-/// never occur because it would represent a height in approximately 9500 years. Conversely, block
-/// times under 500,000,000 will never happen because they would represent times before 1986 which
-/// are, for obvious reasons, not useful within the Bitcoin network.
+/// Kaon is able to safely use this value because a block height greater than 1,500,000,000 would
+/// never occur because it would represent a height in approximately 713 years. Conversely, block
+/// times under 1,500,000,000 will never happen because they would represent times before 2017 which
+/// are, for obvious reasons, not useful within the Kaon network.
 ///
 /// [Bitcoin Core]: https://github.com/bitcoin/bitcoin/blob/9ccaee1d5e2e4b79b0a7c29aadb41b97e4741332/src/script/script.h#L39
-pub const LOCK_TIME_THRESHOLD: u32 = 500_000_000;
+/// Acutal Kaon code reference will be provided later.
+pub const LOCK_TIME_THRESHOLD: u32 = 1_500_000_000;
 
 /// An absolute block height, guaranteed to always contain a valid height value.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -55,7 +56,7 @@ impl Height {
     /// # Examples
     ///
     /// ```rust
-    /// use bitcoin_units::locktime::absolute::Height;
+    /// use kaon_units::locktime::absolute::Height;
     ///
     /// let h: u32 = 741521;
     /// let height = Height::from_consensus(h).expect("invalid height value");
@@ -151,7 +152,7 @@ impl Time {
     /// # Examples
     ///
     /// ```rust
-    /// use bitcoin_units::locktime::absolute::Time;
+    /// use kaon_units::locktime::absolute::Time;
     ///
     /// let t: u32 = 1653195600; // May 22nd, 5am UTC.
     /// let time = Time::from_consensus(t).expect("invalid time value");

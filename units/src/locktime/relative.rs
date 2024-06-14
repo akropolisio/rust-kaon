@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Provides type `Height` and `Time` types used by the `rust-bitcoin` `relative::LockTime` type.
+//! Provides type `Height` and `Time` types used by the `rust-kaon` `relative::LockTime` type.
 
 use core::fmt;
 
@@ -48,6 +48,7 @@ impl fmt::Display for Height {
 }
 
 /// A relative lock time lock-by-blocktime value.
+/// TODO: In kaon the minimum granularity is fixed at 8 seconds.
 ///
 /// For BIP 68 relative lock-by-blocktime locks, time is measure in 512 second intervals.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -64,6 +65,7 @@ impl Time {
     /// The maximum relative block time (33,554,432 seconds or approx 388 days).
     pub const MAX: Self = Time(u16::MAX);
 
+    // TODO: actualize to the current Kaon state
     /// Create a [`Time`] using time intervals where each interval is equivalent to 512 seconds.
     ///
     /// Encoding finer granularity of time for relative lock-times is not supported in Bitcoin.
