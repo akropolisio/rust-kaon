@@ -3,13 +3,13 @@
 
 #![cfg(feature = "serde")]
 
-extern crate bitcoin;
+extern crate kaon;
 extern crate serde_json;
 
 macro_rules! test_opcodes {
     ($($op:ident),* $(,)+) => {
         $(
-            let op = bitcoin::blockdata::opcodes::all::$op;
+            let op = kaon::blockdata::opcodes::all::$op;
             let want = concat!("\"", stringify!($op), "\"");
             let got = ::serde_json::to_string(&op).unwrap();
             assert_eq!(got, want);
@@ -189,7 +189,7 @@ fn serde_regression_opcodes() {
         OP_RIPEMD160,
         OP_SHA1,
         OP_SHA256,
-        OP_HASH160,
+        OP_HASH160_LEGACY,
         OP_HASH256,
         OP_CODESEPARATOR,
         OP_CHECKSIG,
@@ -197,7 +197,7 @@ fn serde_regression_opcodes() {
         OP_CHECKMULTISIG,
         OP_CHECKMULTISIGVERIFY,
         OP_NOP1,
-        OP_CLTV,
+        OP_CHECKLOCKTIMEVERIFY,
         OP_CSV,
         OP_NOP4,
         OP_NOP5,
@@ -207,15 +207,15 @@ fn serde_regression_opcodes() {
         OP_NOP9,
         OP_NOP10,
         OP_CHECKSIGADD,
-        OP_RETURN_187,
-        OP_RETURN_188,
+        OP_RLP_CASCADE_SIG,
+        OP_HASH160,
         OP_RETURN_189,
         OP_RETURN_190,
         OP_RETURN_191,
         OP_RETURN_192,
-        OP_RETURN_193,
-        OP_RETURN_194,
-        OP_RETURN_195,
+        OP_ZEROCOINMINT,
+        OP_ZEROCOINSPEND,
+        OP_ZEROCOINPUBLICSPEND,
         OP_RETURN_196,
         OP_RETURN_197,
         OP_RETURN_198,
@@ -229,15 +229,15 @@ fn serde_regression_opcodes() {
         OP_RETURN_206,
         OP_RETURN_207,
         OP_RETURN_208,
-        OP_RETURN_209,
+        OP_CHECKCOLDSTAKEVERIFY,
         OP_RETURN_210,
         OP_RETURN_211,
         OP_RETURN_212,
         OP_RETURN_213,
         OP_RETURN_214,
-        OP_RETURN_215,
-        OP_RETURN_216,
-        OP_RETURN_217,
+        OP_CHECKLEASEVERIFY,
+        OP_LEASINGREWARD,
+        OP_CLTV,
         OP_RETURN_218,
         OP_RETURN_219,
         OP_RETURN_220,
@@ -245,10 +245,10 @@ fn serde_regression_opcodes() {
         OP_RETURN_222,
         OP_RETURN_223,
         OP_RETURN_224,
-        OP_RETURN_225,
-        OP_RETURN_226,
-        OP_RETURN_227,
-        OP_RETURN_228,
+        OP_CREATE,
+        OP_CALL,
+        OP_SPEND,
+        OP_SENDER,
         OP_RETURN_229,
         OP_RETURN_230,
         OP_RETURN_231,
@@ -262,19 +262,19 @@ fn serde_regression_opcodes() {
         OP_RETURN_239,
         OP_RETURN_240,
         OP_RETURN_241,
-        OP_RETURN_242,
-        OP_RETURN_243,
-        OP_RETURN_244,
-        OP_RETURN_245,
-        OP_RETURN_246,
-        OP_RETURN_247,
-        OP_RETURN_248,
-        OP_RETURN_249,
-        OP_RETURN_250,
-        OP_RETURN_251,
-        OP_RETURN_252,
-        OP_RETURN_253,
-        OP_RETURN_254,
+        OP_ADDRESS_TYPE,
+        OP_ADDRESS,
+        OP_SCRIPT_SIG,
+        OP_GAS_PRICE,
+        OP_VERSION,
+        OP_GAS_LIMIT,
+        OP_DATA,
+        OP_INTEGER,
+        OP_SMALLINTEGER,
+        OP_PUBKEYS,
+        OP_TRXHASH,
+        OP_PUBKEYHASH,
+        OP_PUBKEY,
         OP_INVALIDOPCODE,
     }
 }

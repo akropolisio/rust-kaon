@@ -23,9 +23,9 @@ use crate::policy::DUST_RELAY_TX_FEE;
 use crate::prelude::*;
 use crate::taproot::{LeafVersion, TapLeafHash, TapNodeHash};
 
-/// Bitcoin script slice.
+/// Bitcoin/Kaon script slice.
 ///
-/// *[See also the `bitcoin::blockdata::script` module](crate::blockdata::script).*
+/// *[See also the `kaon::blockdata::script` module](crate::blockdata::script).*
 ///
 /// `Script` is a script slice, the most primitive script type. It's usually seen in its borrowed
 /// form `&Script`. It is always encoded as a series of bytes representing the opcodes and data
@@ -64,9 +64,10 @@ use crate::taproot::{LeafVersion, TapLeafHash, TapNodeHash};
 /// ## References
 ///
 ///
-/// ### Bitcoin Core References
+/// ### Bitcoin/Kaon Core References
 ///
 /// * [CScript definition](https://github.com/bitcoin/bitcoin/blob/d492dc1cdaabdc52b0766bf4cba4bd73178325d0/src/script/script.h#L410)
+/// Actual Kaon code reference would be provided later.
 ///
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -199,7 +200,7 @@ impl Script {
     #[inline]
     pub fn is_p2sh(&self) -> bool {
         self.0.len() == 23
-            && self.0[0] == OP_HASH160.to_u8()
+            && (self.0[0] == OP_HASH160.to_u8() || self.0[0] == OP_HASH160_LEGACY.to_u8())
             && self.0[1] == OP_PUSHBYTES_20.to_u8()
             && self.0[22] == OP_EQUAL.to_u8()
     }
@@ -209,7 +210,7 @@ impl Script {
     pub fn is_p2pkh(&self) -> bool {
         self.0.len() == 25
             && self.0[0] == OP_DUP.to_u8()
-            && self.0[1] == OP_HASH160.to_u8()
+            && (self.0[1] == OP_HASH160.to_u8() || self.0[1] == OP_HASH160_LEGACY.to_u8())
             && self.0[2] == OP_PUSHBYTES_20.to_u8()
             && self.0[23] == OP_EQUALVERIFY.to_u8()
             && self.0[24] == OP_CHECKSIG.to_u8()
@@ -217,7 +218,7 @@ impl Script {
 
     /// Checks whether a script is push only.
     ///
-    /// Note: `OP_RESERVED` (`0x50`) and all the OP_PUSHNUM operations
+    /// Note: `OP_RESERVED` and EVM logic opcodes (`0x50`, `0xe1`, `0xe2`, `0xe3`, `0xe4`, `0xbb`) and all the OP_PUSHNUM operations
     /// are considered push operations.
     #[inline]
     pub fn is_push_only(&self) -> bool {
@@ -226,8 +227,12 @@ impl Script {
                 Err(_) => return false,
                 Ok(Instruction::PushBytes(_)) => {}
                 Ok(Instruction::Op(op)) if op.to_u8() <= 0x60 => {}
-                // From Bitcoin Core
-                // if (opcode > OP_PUSHNUM_16 (0x60)) return false
+                // From Kaon Core
+                Ok(Instruction::Op(op)) if op.to_u8() == 0xe1 => {}
+                Ok(Instruction::Op(op)) if op.to_u8() == 0xe2 => {}
+                Ok(Instruction::Op(op)) if op.to_u8() == 0xe3 => {}
+                Ok(Instruction::Op(op)) if op.to_u8() == 0xe4 => {}
+                Ok(Instruction::Op(op)) if op.to_u8() == 0xbb => {}
                 Ok(Instruction::Op(_)) => return false,
             }
         }
@@ -395,15 +400,16 @@ impl Script {
     }
 
     /// Returns the minimum value an output with this script should have in order to be
-    /// broadcastable on today’s Bitcoin network.
+    /// broadcastable on today’s Kaon network.
     #[deprecated(since = "0.32.0", note = "use minimal_non_dust and friends")]
     pub fn dust_value(&self) -> crate::Amount { self.minimal_non_dust() }
 
     /// Returns the minimum value an output with this script should have in order to be
-    /// broadcastable on today's Bitcoin network.
+    /// broadcastable on today's Kaon network.
     ///
-    /// Dust depends on the -dustrelayfee value of the Bitcoin Core node you are broadcasting to.
-    /// This function uses the default value of 0.00003 BTC/kB (3 sat/vByte).
+    /// Dust depends on the -dustrelayfee value of the Kaon Core node you are broadcasting to.
+    /// This function uses the default value of 0.000000000000003 KAON/kB (300 attokaon/vByte).
+    /// TODO: actualize values
     ///
     /// To use a custom value, use [`minimal_non_dust_custom`].
     ///
@@ -413,34 +419,35 @@ impl Script {
     }
 
     /// Returns the minimum value an output with this script should have in order to be
-    /// broadcastable on today's Bitcoin network.
+    /// broadcastable on today's Kaon network.
     ///
-    /// Dust depends on the -dustrelayfee value of the Bitcoin Core node you are broadcasting to.
+    /// Dust depends on the -dustrelayfee value of the Kaon Core node you are broadcasting to.
     /// This function lets you set the fee rate used in dust calculation.
     ///
-    /// The current default value in Bitcoin Core (as of v26) is 3 sat/vByte.
+    /// The current default value in Kaon Core (as of v1) is 300 akaon/vByte.
+    /// TODO: actualize values
     ///
-    /// To use the default Bitcoin Core value, use [`minimal_non_dust`].
+    /// To use the default Kaon Core value, use [`minimal_non_dust`].
     ///
     /// [`minimal_non_dust`]: Script::minimal_non_dust
     pub fn minimal_non_dust_custom(&self, dust_relay_fee: FeeRate) -> crate::Amount {
         self.minimal_non_dust_inner(dust_relay_fee.to_sat_per_kwu() * 4)
     }
 
-    fn minimal_non_dust_inner(&self, dust_relay_fee: u64) -> crate::Amount {
-        // This must never be lower than Bitcoin Core's GetDustThreshold() (as of v0.21) as it may
+    fn minimal_non_dust_inner(&self, dust_relay_fee: u128) -> crate::Amount {
+        // This must never be lower than Kaon Core's GetDustThreshold() (as of v1) as it may
         // otherwise allow users to create transactions which likely can never be broadcast/confirmed.
         let sats = dust_relay_fee
             .checked_mul(if self.is_op_return() {
                 0
             } else if self.is_witness_program() {
                 32 + 4 + 1 + (107 / 4) + 4 + // The spend cost copied from Core
-                    8 + // The serialized size of the TxOut's amount field
-                    self.consensus_encode(&mut sink()).expect("sinks don't error") as u64 // The serialized size of this script_pubkey
+                    8 + // The serialized size of the TxOut's avg amount field
+                    self.consensus_encode(&mut sink()).expect("sinks don't error") as u128 // The serialized size of this script_pubkey
             } else {
                 32 + 4 + 1 + 107 + 4 + // The spend cost copied from Core
-                    8 + // The serialized size of the TxOut's amount field
-                    self.consensus_encode(&mut sink()).expect("sinks don't error") as u64 // The serialized size of this script_pubkey
+                    8 + // The serialized size of the TxOut's avg amount field
+                    self.consensus_encode(&mut sink()).expect("sinks don't error") as u128 // The serialized size of this script_pubkey
             })
             .expect("dust_relay_fee or script length should not be absurdly large")
             / 1000; // divide by 1000 like in Core to get value as it cancels out DEFAULT_MIN_RELAY_TX_FEE
@@ -452,13 +459,13 @@ impl Script {
 
     /// Counts the sigops for this Script using accurate counting.
     ///
-    /// In Bitcoin Core, there are two ways to count sigops, "accurate" and "legacy".
+    /// In Kaon Core, there are two ways to count sigops, "accurate" and "legacy".
     /// This method uses "accurate" counting. This means that OP_CHECKMULTISIG and its
     /// verify variant count for N sigops where N is the number of pubkeys used in the
     /// multisig. However, it will count for 20 sigops if CHECKMULTISIG is not preceded by an
     /// OP_PUSHNUM from 1 - 16 (this would be an invalid script)
     ///
-    /// Bitcoin Core uses accurate counting for sigops contained within redeemScripts (P2SH)
+    /// Kaon Core uses accurate counting for sigops contained within redeemScripts (P2SH)
     /// and witnessScripts (P2WSH) only. It uses legacy for sigops in scriptSigs and scriptPubkeys.
     ///
     /// (Note: taproot scripts don't count toward the sigop count of the block,
@@ -468,7 +475,7 @@ impl Script {
 
     /// Counts the sigops for this Script using legacy counting.
     ///
-    /// In Bitcoin Core, there are two ways to count sigops, "accurate" and "legacy".
+    /// In Kaon Core, there are two ways to count sigops, "accurate" and "legacy".
     /// This method uses "legacy" counting. This means that OP_CHECKMULTISIG and its
     /// verify variant count for 20 sigops.
     ///
@@ -500,6 +507,7 @@ impl Script {
                                 _ => {
                                     // MAX_PUBKEYS_PER_MULTISIG from Bitcoin Core
                                     // https://github.com/bitcoin/bitcoin/blob/v25.0/src/script/script.h#L29-L30
+                                    // It is the same for Kaon Network
                                     n += 20;
                                 }
                             }
@@ -512,7 +520,7 @@ impl Script {
                 Ok(Instruction::PushBytes(_)) => {
                     pushnum_cache = None;
                 }
-                // In Bitcoin Core it does `if (!GetOp(pc, opcode)) break;`
+                // In Bitcoin/Kaon Core it does `if (!GetOp(pc, opcode)) break;`
                 Err(_) => break,
             }
         }
@@ -603,8 +611,10 @@ impl Script {
         match self.instructions().last() {
             // Handles op codes up to (but excluding) OP_PUSHNUM_NEG.
             Some(Ok(Instruction::PushBytes(bytes))) => Some(bytes),
-            // OP_16 (0x60) and lower are considered "pushes" by Bitcoin Core (excl. OP_RESERVED).
+            // OP_16 (0x60) and lower are considered "pushes" by Bitcoin/Kaon Core (excl. OP_RESERVED),
+            // except a few specific OP_CODEs
             // However we are only interested in the pushdata so we can ignore them.
+            // TODO: update
             _ => None,
         }
     }

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Bitcoin script opcodes.
+//! Bitcoin/Kaon script opcodes.
 //!
-//! Bitcoin's script uses a stack-based assembly language. This module defines
+//! Bitcoin's and Kaon's script uses a stack-based assembly language. This module defines
 //! all of the opcodes for that language.
 
 #![allow(non_camel_case_types)]
@@ -24,7 +24,7 @@ use crate::prelude::*;
 /// <details>
 ///   <summary>Example of Core bug caused by assuming ordering</summary>
 ///
-///   Bitcoin Core's `IsPushOnly` considers `OP_RESERVED` to be a "push code", allowing this opcode
+///   Bitcoin/Kaon Core's `IsPushOnly` considers `OP_RESERVED` to be a "push code", allowing this opcode
 ///   in contexts where only pushes are supposed to be allowed.
 /// </details>
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -38,7 +38,7 @@ macro_rules! all_opcodes {
     ($($op:ident => $val:expr, $doc:expr);*) => {
         /// Enables wildcard imports to bring into scope all opcodes and nothing else.
         ///
-        /// The `all` module is provided so one can use a wildcard import `use bitcoin::opcodes::all::*` to
+        /// The `all` module is provided so one can use a wildcard import `use kaon::opcodes::all::*` to
         /// get all the `OP_FOO` opcodes without getting other types defined in `opcodes` (e.g. `Opcode`, `Class`).
         ///
         /// This module is guaranteed to never contain anything except opcode constants and all opcode
@@ -58,7 +58,7 @@ macro_rules! all_opcodes {
         /// Number 1 is also TRUE.
         pub static OP_TRUE: Opcode = OP_PUSHNUM_1;
         /// Previously called OP_NOP2.
-        pub static OP_NOP2: Opcode = OP_CLTV;
+        pub static OP_NOP2: Opcode = OP_CHECKLOCKTIMEVERIFY;
         /// Previously called OP_NOP3.
         pub static OP_NOP3: Opcode = OP_CSV;
 
@@ -245,7 +245,7 @@ all_opcodes! {
     OP_RIPEMD160 => 0xa6, "Pop the top stack item and push its RIPEMD160 hash.";
     OP_SHA1 => 0xa7, "Pop the top stack item and push its SHA1 hash.";
     OP_SHA256 => 0xa8, "Pop the top stack item and push its SHA256 hash.";
-    OP_HASH160 => 0xa9, "Pop the top stack item and push its RIPEMD(SHA256) hash.";
+    OP_HASH160_LEGACY => 0xa9, "(Legacy) Pop the top stack item and push its RIPEMD(SHA256) hash. See OP_HASH160(0xbc) for the actual implementation. ";
     OP_HASH256 => 0xaa, "Pop the top stack item and push its SHA256(SHA256) hash.";
     OP_CODESEPARATOR => 0xab, "Ignore this and everything preceding when deciding what to sign when signature-checking.";
     OP_CHECKSIG => 0xac, "<https://en.bitcoin.it/wiki/OP_CHECKSIG> pushing 1/0 for success/failure.";
@@ -254,7 +254,7 @@ all_opcodes! {
                       and verify that all M signatures are valid. Push 1 for 'all valid', 0 otherwise.";
     OP_CHECKMULTISIGVERIFY => 0xaf, "Like the above but return success/failure.";
     OP_NOP1 => 0xb0, "Does nothing.";
-    OP_CLTV => 0xb1, "<https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki>";
+    OP_CHECKLOCKTIMEVERIFY => 0xb1, "<https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki>. Fallback OP_CLTV opcode. See OP_CLTV(0xd9) for actual implementation.";
     OP_CSV => 0xb2, "<https://github.com/bitcoin/bips/blob/master/bip-0112.mediawiki>";
     OP_NOP4 => 0xb3, "Does nothing.";
     OP_NOP5 => 0xb4, "Does nothing.";
@@ -263,17 +263,18 @@ all_opcodes! {
     OP_NOP8 => 0xb7, "Does nothing.";
     OP_NOP9 => 0xb8, "Does nothing.";
     OP_NOP10 => 0xb9, "Does nothing.";
-    // Every other opcode acts as OP_RETURN
+    // Every other opcode acts as OP_RETURN if not specified otherwise
     OP_CHECKSIGADD => 0xba, "OP_CHECKSIGADD post tapscript.";
-    OP_RETURN_187 => 0xbb, "Synonym for OP_RETURN.";
-    OP_RETURN_188 => 0xbc, "Synonym for OP_RETURN.";
+    // 0xbb can act as OP_SUCCESS187 in a taproot context
+    OP_RLP_CASCADE_SIG => 0xbb, "This opcode operates with cascade signed by RLP transaction transactions";
+    OP_HASH160 => 0xbc, "Pop the top stack item and push its RIPEMD(SHA256) hash. It also supports SHA3 addrs.";
     OP_RETURN_189 => 0xbd, "Synonym for OP_RETURN.";
     OP_RETURN_190 => 0xbe, "Synonym for OP_RETURN.";
     OP_RETURN_191 => 0xbf, "Synonym for OP_RETURN.";
     OP_RETURN_192 => 0xc0, "Synonym for OP_RETURN.";
-    OP_RETURN_193 => 0xc1, "Synonym for OP_RETURN.";
-    OP_RETURN_194 => 0xc2, "Synonym for OP_RETURN.";
-    OP_RETURN_195 => 0xc3, "Synonym for OP_RETURN.";
+    OP_ZEROCOINMINT => 0xc1, "Informational opcode, signalizes that the transaction will mint zKAON. REMOVED";
+    OP_ZEROCOINSPEND => 0xc2, "Informational opcode, enables spending functionality for zKAON. REMOVED";
+    OP_ZEROCOINPUBLICSPEND => 0xc3, "Informational opcode, enables public spending functionality for zKAON. REMOVED";
     OP_RETURN_196 => 0xc4, "Synonym for OP_RETURN.";
     OP_RETURN_197 => 0xc5, "Synonym for OP_RETURN.";
     OP_RETURN_198 => 0xc6, "Synonym for OP_RETURN.";
@@ -287,15 +288,15 @@ all_opcodes! {
     OP_RETURN_206 => 0xce, "Synonym for OP_RETURN.";
     OP_RETURN_207 => 0xcf, "Synonym for OP_RETURN.";
     OP_RETURN_208 => 0xd0, "Synonym for OP_RETURN.";
-    OP_RETURN_209 => 0xd1, "Synonym for OP_RETURN.";
+    OP_CHECKCOLDSTAKEVERIFY => 0xd1, "Pushing 1/0 for success/failure of verification coldstake pubkey and signature verification.";
     OP_RETURN_210 => 0xd2, "Synonym for OP_RETURN.";
     OP_RETURN_211 => 0xd3, "Synonym for OP_RETURN.";
     OP_RETURN_212 => 0xd4, "Synonym for OP_RETURN.";
     OP_RETURN_213 => 0xd5, "Synonym for OP_RETURN.";
     OP_RETURN_214 => 0xd6, "Synonym for OP_RETURN.";
-    OP_RETURN_215 => 0xd7, "Synonym for OP_RETURN.";
-    OP_RETURN_216 => 0xd8, "Synonym for OP_RETURN.";
-    OP_RETURN_217 => 0xd9, "Synonym for OP_RETURN.";
+    OP_CHECKLEASEVERIFY => 0xd7, "Pushing 1/0 for success/failure of verification leasing pubkey and signature verification.";
+    OP_LEASINGREWARD => 0xd8, "Do nothing, only popping of trx:n of the leasing transaction.";
+    OP_CLTV => 0xd9, "While Kaon supports NOP2 as CLTV, only 0xd9 treats as a part of standard transaction instead of 0xb1";
     OP_RETURN_218 => 0xda, "Synonym for OP_RETURN.";
     OP_RETURN_219 => 0xdb, "Synonym for OP_RETURN.";
     OP_RETURN_220 => 0xdc, "Synonym for OP_RETURN.";
@@ -303,10 +304,10 @@ all_opcodes! {
     OP_RETURN_222 => 0xde, "Synonym for OP_RETURN.";
     OP_RETURN_223 => 0xdf, "Synonym for OP_RETURN.";
     OP_RETURN_224 => 0xe0, "Synonym for OP_RETURN.";
-    OP_RETURN_225 => 0xe1, "Synonym for OP_RETURN.";
-    OP_RETURN_226 => 0xe2, "Synonym for OP_RETURN.";
-    OP_RETURN_227 => 0xe3, "Synonym for OP_RETURN.";
-    OP_RETURN_228 => 0xe4, "Synonym for OP_RETURN.";
+    OP_CREATE => 0xe1, "EVM: Signal that trx should create a contract in EVM state. Do nothing with the stack.";
+    OP_CALL => 0xe2, "EVM: Signal that trx should call a contract in EVM state. Do nothing with the stack.";
+    OP_SPEND => 0xe3, "EVM: Signal that selected UTXO should be under EVM state control. Do nothing with the stack.";
+    OP_SENDER => 0xe4, "EVM: Signal that selected output is signed for it to be verifyed. Actual Kaon policy enforcing this opcode to be presented in case of EVM transaction. Do nothing with the stack.";
     OP_RETURN_229 => 0xe5, "Synonym for OP_RETURN.";
     OP_RETURN_230 => 0xe6, "Synonym for OP_RETURN.";
     OP_RETURN_231 => 0xe7, "Synonym for OP_RETURN.";
@@ -320,19 +321,19 @@ all_opcodes! {
     OP_RETURN_239 => 0xef, "Synonym for OP_RETURN.";
     OP_RETURN_240 => 0xf0, "Synonym for OP_RETURN.";
     OP_RETURN_241 => 0xf1, "Synonym for OP_RETURN.";
-    OP_RETURN_242 => 0xf2, "Synonym for OP_RETURN.";
-    OP_RETURN_243 => 0xf3, "Synonym for OP_RETURN.";
-    OP_RETURN_244 => 0xf4, "Synonym for OP_RETURN.";
-    OP_RETURN_245 => 0xf5, "Synonym for OP_RETURN.";
-    OP_RETURN_246 => 0xf6, "Synonym for OP_RETURN.";
-    OP_RETURN_247 => 0xf7, "Synonym for OP_RETURN.";
-    OP_RETURN_248 => 0xf8, "Synonym for OP_RETURN.";
-    OP_RETURN_249 => 0xf9, "Synonym for OP_RETURN.";
-    OP_RETURN_250 => 0xfa, "Synonym for OP_RETURN.";
-    OP_RETURN_251 => 0xfb, "Synonym for OP_RETURN.";
-    OP_RETURN_252 => 0xfc, "Synonym for OP_RETURN.";
-    OP_RETURN_253 => 0xfd, "Synonym for OP_RETURN.";
-    OP_RETURN_254 => 0xfe, "Synonym for OP_RETURN.";
+    OP_ADDRESS_TYPE => 0xf2, "Not real template matching parameter opcode for EVM. Stores in a temp value address type (only PKH are supported now).";
+    OP_ADDRESS => 0xf3, "Not real template matching parameter opcode for EVM. Based on a stored by OP_ADDRESS_TYPE type and value in pch stores in a stack locker script for the address (only PKH are supported now).";
+    OP_SCRIPT_SIG => 0xf4, "Not real template matching parameter opcode for EVM. Verifyes and stores in a stack signature from pch.";
+    OP_GAS_PRICE => 0xf5, "Not real template matching parameter opcode for EVM. Verifyes and stores in a stack gas price of the EVM transaction, from pch. Uses u128, the value can't be negative.";
+    OP_VERSION => 0xf6, "Not real template matching parameter opcode for EVM. Verifyes and stores in a stack EVM engine version reqested by the EVM transaction execution, from pch.";
+    OP_GAS_LIMIT => 0xf7, "Not real template matching parameter opcode for EVM. Verifyes and stores in a stack gas limit of the EVM transaction, from pch. Uses u128, the value can't be negative.";
+    OP_DATA => 0xf8, "Not real template matching parameter opcode. It expects to see non-empty push data in the verifyed transaction script.";
+    OP_INTEGER => 0xf9, "Not real template matching parameter opcode. It expects to see integer value up to u64 in the verifyed transaction script. If it is alright it stores the value into the stack.";
+    OP_SMALLINTEGER => 0xfa, "Not real template matching parameter opcode. It expects to see integer value in a range from 0 to 16 in the verifyed transaction script. If it is alright it stores the value into the stack.";
+    OP_PUBKEYS => 0xfb, "Not real template matching parameter opcode. It expects to see compressed/uncompressed pubkey in the verifyed transaction script. If it is alright it stores the value into the stack. After it it moves cursor onto the next script element.";
+    OP_TRXHASH => 0xfc, "Not real template matching parameter opcode.  It expects to see u256 transaction id in the verifyed transaction script. If it is alright it stores the value into the stack.";
+    OP_PUBKEYHASH => 0xfd, "Not real template matching parameter opcode.  It expects to see u160 pubkey hash in the verifyed transaction script. If it is alright it stores the value into the stack.";
+    OP_PUBKEY => 0xfe, "Not real template matching parameter opcode. . It expects to see compressed/uncompressed pubkey in the verifyed transaction script. If it is alright it stores the value into the stack.";
     OP_INVALIDOPCODE => 0xff, "Synonym for OP_RETURN."
 }
 
@@ -378,9 +379,14 @@ impl Opcode {
                     || (op.code >= 187 && op.code <= 254) =>
                 Class::SuccessOp,
 
-            // 11 opcodes of NoOp class
+            // 9 opcodes of NoOp class
             (OP_NOP, _) => Class::NoOp,
-            (op, _) if op.code >= OP_NOP1.code && op.code <= OP_NOP10.code => Class::NoOp,
+            (op, _)
+                if op.code >= OP_NOP1.code
+                    && op.code <= OP_NOP10.code
+                    && op.code != OP_CHECKLOCKTIMEVERIFY.code
+                    && op.code != OP_CSV.code =>
+                Class::NoOp,
 
             // 1 opcode for `OP_RETURN`
             (OP_RETURN, _) => Class::ReturnOp,
@@ -390,12 +396,29 @@ impl Opcode {
                 if ctx == ClassifyContext::Legacy =>
                 Class::ReturnOp,
 
-            // 71 opcodes operating equally to `OP_RETURN` only in Legacy context
-            (op, ClassifyContext::Legacy) if op.code >= OP_CHECKSIGADD.code => Class::ReturnOp,
+            // 60 opcodes operating equally to `OP_RETURN` only in Legacy context
+            (op, ClassifyContext::Legacy)
+                if op.code >= OP_CHECKSIGADD.code
+                    && op.code != OP_RLP_CASCADE_SIG.code
+                    && op.code != OP_ZEROCOINMINT.code
+                    && op.code != OP_ZEROCOINSPEND.code
+                    && op.code != OP_ZEROCOINPUBLICSPEND.code
+                    && op.code != OP_CHECKCOLDSTAKEVERIFY.code
+                    && op.code != OP_CHECKLEASEVERIFY.code
+                    && op.code != OP_LEASINGREWARD.code
+                    && op.code != OP_CLTV.code
+                    && op.code != OP_CREATE.code
+                    && op.code != OP_CALL.code
+                    && op.code != OP_SPEND.code
+                    && op.code != OP_SENDER.code =>
+                Class::ReturnOp,
 
             // 2 opcodes operating equally to `OP_RETURN` only in TapScript context
             (OP_CHECKMULTISIG, ClassifyContext::TapScript)
             | (OP_CHECKMULTISIGVERIFY, ClassifyContext::TapScript) => Class::ReturnOp,
+
+            // 1 opcode operating equally to SuccessOp only in TapScript context
+            (OP_RLP_CASCADE_SIG, ClassifyContext::TapScript) => Class::SuccessOp,
 
             // 1 opcode of PushNum class
             (OP_PUSHNUM_NEG1, _) => Class::PushNum(-1),
@@ -407,7 +430,7 @@ impl Opcode {
             // 76 opcodes of PushBytes class
             (op, _) if op.code <= OP_PUSHBYTES_75.code => Class::PushBytes(self.code as u32),
 
-            // opcodes of Ordinary class: 61 for Legacy and 60 for TapScript context
+            // opcodes of Ordinary class: 62 for Legacy and 60 for TapScript context
             (_, _) => Class::Ordinary(Ordinary::with(self)),
         }
     }
@@ -506,7 +529,7 @@ macro_rules! ordinary_opcode {
     );
 }
 
-// "Ordinary" opcodes -- should be 61 of these
+// "Ordinary" opcodes -- should be 62 of these
 ordinary_opcode! {
     // pushdata
     OP_PUSHDATA1, OP_PUSHDATA2, OP_PUSHDATA4,
@@ -526,7 +549,7 @@ ordinary_opcode! {
     OP_GREATERTHAN, OP_LESSTHANOREQUAL, OP_GREATERTHANOREQUAL,
     OP_MIN, OP_MAX, OP_WITHIN,
     // crypto
-    OP_RIPEMD160, OP_SHA1, OP_SHA256, OP_HASH160, OP_HASH256,
+    OP_RIPEMD160, OP_SHA1, OP_SHA256, OP_HASH160, OP_HASH160_LEGACY, OP_HASH256,
     OP_CODESEPARATOR, OP_CHECKSIG, OP_CHECKSIGVERIFY,
     OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY,
     OP_CHECKSIGADD
@@ -624,7 +647,7 @@ mod tests {
             Class::Ordinary(Ordinary::OP_CHECKSIGADD)
         );
 
-        let op187 = OP_RETURN_187;
+        let op187 = OP_RLP_CASCADE_SIG;
         assert_eq!(op187.classify(ClassifyContext::Legacy), Class::ReturnOp);
         assert_eq!(op187.classify(ClassifyContext::TapScript), Class::SuccessOp);
     }
@@ -801,7 +824,7 @@ mod tests {
         roundtrip!(unique, OP_RIPEMD160);
         roundtrip!(unique, OP_SHA1);
         roundtrip!(unique, OP_SHA256);
-        roundtrip!(unique, OP_HASH160);
+        roundtrip!(unique, OP_HASH160_LEGACY);
         roundtrip!(unique, OP_HASH256);
         roundtrip!(unique, OP_CODESEPARATOR);
         roundtrip!(unique, OP_CHECKSIG);
@@ -809,7 +832,7 @@ mod tests {
         roundtrip!(unique, OP_CHECKMULTISIG);
         roundtrip!(unique, OP_CHECKMULTISIGVERIFY);
         roundtrip!(unique, OP_NOP1);
-        roundtrip!(unique, OP_CLTV);
+        roundtrip!(unique, OP_CHECKLOCKTIMEVERIFY);
         roundtrip!(unique, OP_CSV);
         roundtrip!(unique, OP_NOP4);
         roundtrip!(unique, OP_NOP5);
@@ -819,15 +842,15 @@ mod tests {
         roundtrip!(unique, OP_NOP9);
         roundtrip!(unique, OP_NOP10);
         roundtrip!(unique, OP_CHECKSIGADD);
-        roundtrip!(unique, OP_RETURN_187);
-        roundtrip!(unique, OP_RETURN_188);
+        roundtrip!(unique, OP_RLP_CASCADE_SIG);
+        roundtrip!(unique, OP_HASH160);
         roundtrip!(unique, OP_RETURN_189);
         roundtrip!(unique, OP_RETURN_190);
         roundtrip!(unique, OP_RETURN_191);
         roundtrip!(unique, OP_RETURN_192);
-        roundtrip!(unique, OP_RETURN_193);
-        roundtrip!(unique, OP_RETURN_194);
-        roundtrip!(unique, OP_RETURN_195);
+        roundtrip!(unique, OP_ZEROCOINMINT);
+        roundtrip!(unique, OP_ZEROCOINSPEND);
+        roundtrip!(unique, OP_ZEROCOINPUBLICSPEND);
         roundtrip!(unique, OP_RETURN_196);
         roundtrip!(unique, OP_RETURN_197);
         roundtrip!(unique, OP_RETURN_198);
@@ -841,15 +864,15 @@ mod tests {
         roundtrip!(unique, OP_RETURN_206);
         roundtrip!(unique, OP_RETURN_207);
         roundtrip!(unique, OP_RETURN_208);
-        roundtrip!(unique, OP_RETURN_209);
+        roundtrip!(unique, OP_CHECKCOLDSTAKEVERIFY);
         roundtrip!(unique, OP_RETURN_210);
         roundtrip!(unique, OP_RETURN_211);
         roundtrip!(unique, OP_RETURN_212);
         roundtrip!(unique, OP_RETURN_213);
         roundtrip!(unique, OP_RETURN_214);
-        roundtrip!(unique, OP_RETURN_215);
-        roundtrip!(unique, OP_RETURN_216);
-        roundtrip!(unique, OP_RETURN_217);
+        roundtrip!(unique, OP_CHECKLEASEVERIFY);
+        roundtrip!(unique, OP_LEASINGREWARD);
+        roundtrip!(unique, OP_CLTV);
         roundtrip!(unique, OP_RETURN_218);
         roundtrip!(unique, OP_RETURN_219);
         roundtrip!(unique, OP_RETURN_220);
@@ -857,10 +880,10 @@ mod tests {
         roundtrip!(unique, OP_RETURN_222);
         roundtrip!(unique, OP_RETURN_223);
         roundtrip!(unique, OP_RETURN_224);
-        roundtrip!(unique, OP_RETURN_225);
-        roundtrip!(unique, OP_RETURN_226);
-        roundtrip!(unique, OP_RETURN_227);
-        roundtrip!(unique, OP_RETURN_228);
+        roundtrip!(unique, OP_CREATE);
+        roundtrip!(unique, OP_CALL);
+        roundtrip!(unique, OP_SPEND);
+        roundtrip!(unique, OP_SENDER);
         roundtrip!(unique, OP_RETURN_229);
         roundtrip!(unique, OP_RETURN_230);
         roundtrip!(unique, OP_RETURN_231);
@@ -874,19 +897,19 @@ mod tests {
         roundtrip!(unique, OP_RETURN_239);
         roundtrip!(unique, OP_RETURN_240);
         roundtrip!(unique, OP_RETURN_241);
-        roundtrip!(unique, OP_RETURN_242);
-        roundtrip!(unique, OP_RETURN_243);
-        roundtrip!(unique, OP_RETURN_244);
-        roundtrip!(unique, OP_RETURN_245);
-        roundtrip!(unique, OP_RETURN_246);
-        roundtrip!(unique, OP_RETURN_247);
-        roundtrip!(unique, OP_RETURN_248);
-        roundtrip!(unique, OP_RETURN_249);
-        roundtrip!(unique, OP_RETURN_250);
-        roundtrip!(unique, OP_RETURN_251);
-        roundtrip!(unique, OP_RETURN_252);
-        roundtrip!(unique, OP_RETURN_253);
-        roundtrip!(unique, OP_RETURN_254);
+        roundtrip!(unique, OP_ADDRESS_TYPE);
+        roundtrip!(unique, OP_ADDRESS);
+        roundtrip!(unique, OP_SCRIPT_SIG);
+        roundtrip!(unique, OP_GAS_PRICE);
+        roundtrip!(unique, OP_VERSION);
+        roundtrip!(unique, OP_GAS_LIMIT);
+        roundtrip!(unique, OP_DATA);
+        roundtrip!(unique, OP_INTEGER);
+        roundtrip!(unique, OP_SMALLINTEGER);
+        roundtrip!(unique, OP_PUBKEYS);
+        roundtrip!(unique, OP_TRXHASH);
+        roundtrip!(unique, OP_PUBKEYHASH);
+        roundtrip!(unique, OP_PUBKEY);
         roundtrip!(unique, OP_INVALIDOPCODE);
         assert_eq!(unique.len(), 256);
     }
