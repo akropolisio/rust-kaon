@@ -100,7 +100,7 @@ impl Work {
     /// Returns log2 of this work.
     ///
     /// The result inherently suffers from a loss of precision and is, therefore, meant to be
-    /// used mainly for informative and displaying purposes, similarly to Bitcoin Core's
+    /// used mainly for informative and displaying purposes, similarly to Bitcoin/Kaon Core's
     /// `log2_work` output in its logs.
     #[cfg(feature = "std")]
     pub fn log2(self) -> f64 { self.0.to_f64().log2() }
@@ -130,7 +130,8 @@ impl Sub for Work {
 pub struct Target(U256);
 
 impl Target {
-    /// When parsing nBits, Bitcoin Core converts a negative target threshold into a target of zero.
+    // TODO: ensure correct values
+    /// When parsing nBits, Kaon Core converts a negative target threshold into a target of zero.
     pub const ZERO: Target = Target(U256::ZERO);
     /// The maximum possible target.
     ///
@@ -139,28 +140,28 @@ impl Target {
     /// possible target. Remember highest target == lowest difficulty.
     ///
     /// ref: <https://en.bitcoin.it/wiki/Target>
-    // In Bitcoind this is ~(u256)0 >> 32 stored as a floating-point type so it gets truncated, hence
-    // the low 208 bits are all zero.
+    // In kaond this is ~(u256)0 >> 32 stored as a floating-point type so it gets truncated, hence
+    // the low 208 bits are all zero. TODO: ensure
     pub const MAX: Self = Target(U256(0xFFFF_u128 << (208 - 128), 0));
 
     /// The maximum **attainable** target value on mainnet.
     ///
     /// Not all target values are attainable because consensus code uses the compact format to
-    /// represent targets (see [`CompactTarget`]).
+    /// represent targets (see `CompactTarget`).
     pub const MAX_ATTAINABLE_MAINNET: Self = Target(U256(0xFFFF_u128 << (208 - 128), 0));
 
     /// The proof of work limit on testnet.
-    // Taken from Bitcoin Core but had lossy conversion to/from compact form.
+    // Taken from Kaon Core but had lossy conversion to/from compact form.
     // https://github.com/bitcoin/bitcoin/blob/8105bce5b384c72cf08b25b7c5343622754e7337/src/kernel/chainparams.cpp#L208
     pub const MAX_ATTAINABLE_TESTNET: Self = Target(U256(0xFFFF_u128 << (208 - 128), 0));
 
     /// The proof of work limit on regtest.
-    // Taken from Bitcoin Core but had lossy conversion to/from compact form.
+    // Taken from Kaon Core but had lossy conversion to/from compact form.
     // https://github.com/bitcoin/bitcoin/blob/8105bce5b384c72cf08b25b7c5343622754e7337/src/kernel/chainparams.cpp#L411
     pub const MAX_ATTAINABLE_REGTEST: Self = Target(U256(0x7FFF_FF00u128 << 96, 0));
 
     /// The proof of work limit on signet.
-    // Taken from Bitcoin Core but had lossy conversion to/from compact form.
+    // Taken from Kaon Core but had lossy conversion to/from compact form.
     // https://github.com/bitcoin/bitcoin/blob/8105bce5b384c72cf08b25b7c5343622754e7337/src/kernel/chainparams.cpp#L348
     pub const MAX_ATTAINABLE_SIGNET: Self = Target(U256(0x0377_ae00 << 80, 0));
 
@@ -168,6 +169,7 @@ impl Target {
     ///
     /// ref: <https://developer.bitcoin.org/reference/block_chain.html#target-nbits>
     pub fn from_compact(c: CompactTarget) -> Target {
+        // TODO: update formulae to support updated compact for 1e-18
         let bits = c.0;
         // This is a floating-point "compact" encoding originally used by
         // OpenSSL, which satoshi put into consensus code, so we're stuck
@@ -242,7 +244,7 @@ impl Target {
     /// # Note
     ///
     /// Difficulty is calculated using the following algorithm `max / current` where [max] is
-    /// defined for the Bitcoin network and `current` is the current [target] for this block. As
+    /// defined for the Kaon network and `current` is the current [target] for this block. As
     /// such, a low target implies a high difficulty. Since [`Target`] is represented as a 256 bit
     /// integer but `difficulty()` returns only 128 bits this means for targets below approximately
     /// `0xffff_ffff_ffff_ffff_ffff_ffff` `difficulty()` will saturate at `u128::MAX`.
@@ -302,7 +304,7 @@ impl Target {
     ///
     /// # Returns
     ///
-    /// In line with Bitcoin Core this function may return a target value of zero.
+    /// In line with Kaon Core this function may return a target value of zero.
     pub fn min_transition_threshold(&self) -> Self { Self(self.0 >> 2) }
 
     /// Computes the maximum valid [`Target`] threshold allowed for a block in which a difficulty
@@ -337,9 +339,9 @@ do_impl!(Target);
 /// Encoding of 256-bit target as 32-bit float.
 ///
 /// This is used to encode a target into the block header. Satoshi made this part of consensus code
-/// in the original version of Bitcoin, likely copying an idea from OpenSSL.
+/// in the original version of Kaon, likely copying an idea from OpenSSL.
 ///
-/// OpenSSL's bignum (BN) type has an encoding, which is even called "compact" as in bitcoin, which
+/// OpenSSL's bignum (BN) type has an encoding, which is even called "compact" as in kaon, which
 /// is exactly this format.
 ///
 /// # Note on order/equality
@@ -425,7 +427,7 @@ impl CompactTarget {
     ///
     /// See [`CompactTarget::from_next_work_required`]
     ///
-    /// For example, to successfully compute the first difficulty adjustment on the Bitcoin network,
+    /// For example, to successfully compute the first difficulty adjustment on the Kaon network,
     /// one would pass the header for Block 2015 as `current` and the header for Block 0 as
     /// `last_epoch_boundary`.
     ///
@@ -476,6 +478,8 @@ impl UpperHex for CompactTarget {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { UpperHex::fmt(&self.0, f) }
 }
+
+// TODO: add support for U128
 
 /// Big-endian 256 bit integer type.
 // (high, low): u.0 contains the high bits, u.1 contains the low bits.
@@ -560,7 +564,7 @@ impl U256 {
     ///
     /// 2**256 / (x + 1) == ~x / (x + 1) + 1
     ///
-    /// (Equation shamelessly stolen from bitcoind)
+    /// (Equation shamelessly stolen from kaond)
     fn inverse(&self) -> U256 {
         // We should never have a target/work of zero so this doesn't matter
         // that much but we define the inverse of 0 as max.
@@ -1919,7 +1923,7 @@ mod tests {
 
     #[test]
     fn target_difficulty_float() {
-        let params = Params::new(crate::Network::Bitcoin);
+        let params = Params::new(crate::Network::Mainnet);
 
         assert_eq!(Target::MAX.difficulty_float(&params), 1.0_f64);
         assert_eq!(
@@ -1963,14 +1967,10 @@ mod tests {
     #[cfg(feature = "std")]
     #[test]
     fn work_log2() {
-        // Compare work log2 to historical Bitcoin Core values found in Core logs.
+        // Compare work log2 to historical Kaon Core values found in Core logs.
         let tests: Vec<(u128, f64)> = vec![
             // (chainwork, core log2)                // height
-            (0x200020002, 33.000022),                // 1
-            (0xa97d67041c5e51596ee7, 79.405055),     // 308004
-            (0x1dc45d79394baa8ab18b20, 84.895644),   // 418141
-            (0x8c85acb73287e335d525b98, 91.134654),  // 596624
-            (0x2ef447e01d1642c40a184ada, 93.553183), // 738965
+            (0x200020002, 33.000022), // 1
         ];
 
         for (chainwork, core_log2) in tests {

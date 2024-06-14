@@ -4,6 +4,10 @@
 //!
 //! This module defines structures, functions, and traits that are needed to
 //! conform to Bitcoin consensus.
+//!
+//! Not used in Kaon Network
+//!
+// TODO: update consensus
 
 pub mod encode;
 pub mod params;
